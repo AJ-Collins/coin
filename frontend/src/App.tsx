@@ -21,11 +21,6 @@ import ExchangesPage from "./pages/ExchangesPage";
 // import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 // import UsersPage from "./pages/admin/UsersPage";
 
-// Marketer
-// import MarketerLayout from "./components/marketer/Layout";
-// import MarketerDashboardPage from "./pages/marketer/MarketerDashboardPage";
-// import CampaignsPage from "./pages/marketer/CampaignsPage";
-
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -56,14 +51,6 @@ export default function App() {
               <Route element={<AdminLayout />}>
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/admin/users" element={<UsersPage />} />
-              </Route>
-            </Route> */}
-
-            {/* Marketer-only */}
-            {/* <Route element={<ProtectedRoute allowedRoles={["marketer"]} />}>
-              <Route element={<MarketerLayout />}>
-                <Route path="/marketer" element={<MarketerDashboardPage />} />
-                <Route path="/marketer/campaigns" element={<CampaignsPage />} />
               </Route>
             </Route> */}
           </Routes>
