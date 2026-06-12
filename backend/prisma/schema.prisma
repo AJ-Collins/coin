@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model ExchangeAccount {
+  id         Int     @id @default(autoincrement())
+  name       String
+  exchange   String
+  apiKey     String
+  secretKey  String
+  isPaper    Boolean @default(false)
+  bots       Bot[]
+  createdAt  DateTime @default(now())
+}
+
+model Bot {
+  id                Int             @id @default(autoincrement())
+  name              String
+  template          String
+  status            String          @default("stopped")
+  settings          String          @default("{}")
+  baseCurrency      String
+  quoteCurrency     String
+  exchangeAccountId Int
+  exchangeAccount   ExchangeAccount @relation(fields: [exchangeAccountId], references: [id])
+  orders            Order[]
+  logs              BotLog[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  botId         Int
+  bot           Bot      @relation(fields: [botId], references: [id])
+  exchangeOrderId String?
+  side          String
+  type          String
+  status        String   @default("pending")
+  price         Float?
+  quantity      Float
+  filledQty     Float    @default(0)
+  symbol        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BotLog {
+  id        Int      @id @default(autoincrement())
+  botId     Int
+  bot       Bot      @relation(fields: [botId], references: [id])
+  message   String
+  level     String   @default("info")
+  createdAt DateTime @default(now())
+}
+
+model PaperBalance {
+  id        Int      @id @default(autoincrement())
+  currency  String   @unique
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model PaperConfig {
+  id         Int   @id @default(autoincrement())
+  winRate    Float @default(0.65)
+  maxLoss    Float @default(0.02)
+  maxGain    Float @default(0.04)
+}
