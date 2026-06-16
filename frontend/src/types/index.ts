@@ -1,10 +1,22 @@
-export type UserRole = "user" | "admin";
+export type UserRole = "USER" | "ADMIN";
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   role: UserRole;
-  // add other fields the backend returns (name, plan, etc.)
+  referralRate: number;
+  kycStatus: "UNVERIFIED" | "PENDING" | "VERIFIED";
+  idDocument: string | null;
+  accounts: FinancialAccount[];
+  createdAt: string;
+}
+
+export interface FinancialAccount {
+  id: string;
+  type: "DEMO" | "REAL";
+  balance: number;
+  currency: string;
+  createdAt: string;
 }
 
 export interface ExchangeAccount {
@@ -68,3 +80,73 @@ export interface MarketSummary {
   topGainer: MarketTicker;
   topLoser: MarketTicker;
 }
+
+// types.ts
+export interface Network {
+  name: string;
+  fee: number;
+}
+
+export interface CryptoAsset {
+  id: string;
+  name: string;
+  symbol: string;
+  networks: Network[];
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  currency: string;
+  network: string;
+  address: string;
+  status: "Pending" | "Approved" | "Rejected";
+  txHash: string;
+  date: string;
+}
+
+// Data Array mapped to match your exact image constraints and CDN links
+export const CRYPTO_OPTIONS: CryptoAsset[] = [
+  { 
+    id: "USDT", 
+    name: "Tether", 
+    symbol: "USDT", 
+    networks: [
+      { name: "Tron (TRC20)", fee: 1.00 },
+      { name: "Ethereum (ERC20)", fee: 12.00 },
+      { name: "BSC (BEP20)", fee: 0.30 },
+      { name: "Polygon", fee: 0.15 },
+      { name: "Arbitrum", fee: 0.40 },
+      { name: "Optimism", fee: 0.40 }
+    ] 
+  },
+  { 
+    id: "BTC", 
+    name: "Bitcoin", 
+    symbol: "BTC", 
+    networks: [
+      { name: "Native Bitcoin", fee: 2.50 },
+      { name: "Lightning Network", fee: 0.05 }
+    ] 
+  },
+  { 
+    id: "ETH", 
+    name: "Ethereum", 
+    symbol: "ETH", 
+    networks: [
+      { name: "Ethereum (ERC20)", fee: 8.00 },
+      { name: "Base Network", fee: 0.10 },
+      { name: "Arbitrum One", fee: 0.25 }
+    ] 
+  },
+  { 
+    id: "USDC", 
+    name: "USD Coin", 
+    symbol: "USDC", 
+    networks: [
+      { name: "Ethereum (ERC20)", fee: 8.00 },
+      { name: "BSC (BEP20)", fee: 0.30 },
+      { name: "Tron (TRC20)", fee: 1.00 }
+    ] 
+  },
+];

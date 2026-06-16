@@ -1,29 +1,51 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import { createServer } from "http";
-import { authRouter } from "./routes/auth.js";
-import { botsRouter } from "./routes/bots.js";
-import { exchangesRouter } from "./routes/exchanges.js";
-import { ordersRouter } from "./routes/orders.js";
-import { marketRouter } from "./routes/market.js";
-import { paperRouter } from "./routes/paper.js";
-import { authenticate } from "./middleware/auth.js";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import http from 'http';
+import path from 'path';
+import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
+// import tradeRoutes from './routes/tradeRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { setupWebSocket } from "./ws.js";
 
 dotenv.config();
-const app = express();
-const server = createServer(app);
-const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json());
-app.use("/api/auth", authRouter);
-app.use("/api/bots", authenticate, botsRouter);
-app.use("/api/exchanges", authenticate, exchangesRouter);
-app.use("/api/orders", authenticate, ordersRouter);
-app.use("/api/market", authenticate, marketRouter);
-app.use("/api/paper", authenticate, paperRouter);
+const app = express();
+app.set('trust proxy', 1);
+const port = Number(process.env.PORT) || 5000;
+
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    // "https://tradenestbinary.com",
+    // "https://www.tradenestbinary.com",
+    // "https://api.tradenestbinary.com"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", 'Cache-Control', 'Pragma', 'Expires'],
+  credentials: true
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve uploads directory statically
+app.use('/uploads', express.static(path.join(import.meta.dirname, '../uploads')));
+
+app.get('/', (req, res) => {
+  res.json({ message: 'TradeNestBinary API is running' });
+});
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+// app.use('/api/trades', tradeRoutes);
+app.use('/api/admin', adminRoutes);
+
+// HTTP SERVER & SOCKETS
+const server = http.createServer(app);
 setupWebSocket(server);
 
-server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port http://localhost:${port}`);
+});

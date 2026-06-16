@@ -3,7 +3,7 @@ import { useAuth } from "../lib/auth";
 import type { UserRole } from "../types";
 
 interface ProtectedRouteProps {
-  allowedRoles?: UserRole[];
+  allowedRoles?: UserRole[] | string[];
 }
 
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
@@ -18,9 +18,13 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (!token) return <Navigate to="/login" replace />;
+  if (allowedRoles && user?.role) {
+    const upperAllowedRoles = allowedRoles.map((role) => role.toUpperCase());
+    const upperUserRole = user.role.toUpperCase();
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    if (!upperAllowedRoles.includes(upperUserRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return <Outlet />;

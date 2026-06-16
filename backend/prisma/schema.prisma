@@ -3,79 +3,288 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
+  id               String       @id @default(uuid())
+  email            String       @unique
+  password         String
+  role             Role         @default(USER)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  referralRate     Decimal      @default(0.00)
+  referrerId       String?
+  status           UserStatus   @default(ACTIVE)
+  idDocument       String?
+  kycStatus        KYCStatus    @default(UNVERIFIED)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean      @default(false)
+
+  // Each user gets exactly one HD account index for address derivation
+  hdAccountIndex   Int          @unique @default(autoincrement())
+
+  accounts         Account[]
+  deposits         Deposit[]
+  depositAddresses DepositAddress[]
+  trades           Trade[]
+  withdrawals      Withdrawal[]
+  auditLogs        AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+  proBots          ProBot[]
+  passkeys         Passkey[]
+
+  referrer         User?        @relation("Referrals", fields: [referrerId], references: [id])
+  referredUsers    User[]       @relation("Referrals")
+}
+
+enum Role {
+  USER
+  ADMIN
+  MARKETER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum KYCStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
-model ExchangeAccount {
-  id         Int     @id @default(autoincrement())
-  name       String
-  exchange   String
-  apiKey     String
-  secretKey  String
-  isPaper    Boolean @default(false)
-  bots       Bot[]
-  createdAt  DateTime @default(now())
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  metadata  String?
+  createdAt DateTime @default(now())
 }
 
-model Bot {
-  id                Int             @id @default(autoincrement())
-  name              String
-  template          String
-  status            String          @default("stopped")
-  settings          String          @default("{}")
-  baseCurrency      String
-  quoteCurrency     String
-  exchangeAccountId Int
-  exchangeAccount   ExchangeAccount @relation(fields: [exchangeAccountId], references: [id])
-  orders            Order[]
-  logs              BotLog[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+enum AccountType {
+  DEMO
+  REAL
 }
 
-model Order {
-  id            Int      @id @default(autoincrement())
-  botId         Int
-  bot           Bot      @relation(fields: [botId], references: [id])
-  exchangeOrderId String?
-  side          String
-  type          String
-  status        String   @default("pending")
-  price         Float?
-  quantity      Float
-  filledQty     Float    @default(0)
-  symbol        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Account {
+  id          String       @id @default(uuid())
+  userId      String
+  type        AccountType  @default(REAL)
+  balance     Decimal      @default(0.00)
+  currency    String       @default("USD")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id])
+  trades      Trade[]
+  proBots     ProBot[]
+  withdrawals Withdrawal[]
+
+  @@unique([userId, type])
 }
 
-model BotLog {
+enum Coin {
+  ETH
+  BTC
+  USDT
+  USDC
+  BNB
+  XRP
+}
+
+// Per-user, per-coin, per-network deposit address (HD-derived, never stores private key)
+model DepositAddress {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  coin           Coin
+  network        String   // 'sepolia', 'bsc_testnet', 'btc_testnet', 'xrp_testnet', etc
+  address        String
+  derivationPath String
+  createdAt      DateTime @default(now())
+
+  deposits       Deposit[]
+
+  @@unique([userId, coin, network])
+  @@index([address])       // fast lookup by on-chain listener
+}
+
+enum DepositStatus {
+  PENDING    // tx seen on-chain, not yet confirmed
+  CONFIRMED  // confirmed on-chain, not yet credited to Account
+  CREDITED   // Account.balance updated
+  SWEPT      // funds moved from deposit address to hot wallet
+  FAILED
+}
+
+model Deposit {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  depositAddressId String
+  depositAddress   DepositAddress @relation(fields: [depositAddressId], references: [id])
+
+  coin             Coin
+  network          String
+  txHash           String         @unique   // idempotency: prevents double-credit
+  amount           Decimal                  // amount in `coin` units
+  usdValueAtCredit Decimal?                 // snapshot of USD value when credited (for Account.balance conversion)
+
+  status           DepositStatus  @default(PENDING)
+
+  sweptTx          String?                  // tx hash of sweep to hot wallet
+  sweptAt          DateTime?
+
+  detectedAt       DateTime       @default(now())
+  creditedAt       DateTime?
+  createdAt        DateTime       @default(now())
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model Withdrawal {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  accountId String
+  account   Account          @relation(fields: [accountId], references: [id])
+
+  amount    Decimal          // USD amount deducted from Account.balance
+  coin      Coin             // coin to send out
+  network   String
+  toAddress String
+
+  status    WithdrawalStatus @default(PENDING)
+  txHash    String?          // set once broadcast
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+enum ProBotStatus {
+  IDLE
+  RUNNING
+  STOPPED
+}
+
+enum LogLevel {
+  INFO
+  SUCCESS
+  WARN
+  ERROR
+}
+
+enum TradeStatus {
+  RUNNING
+  COMPLETED
+  STOPPED
+}
+
+// Generated by admin, redeemed once by a user to unlock a specific bot version
+model Passkey {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique
+  label     String?
+  version   String    @default("v2.1")  // which ProBot version this unlocks
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+
+  proBotId  Int?      @unique
+  proBot    ProBot?   @relation(fields: [proBotId], references: [id])
+
+  createdAt DateTime  @default(now())
+}
+
+model ProBot {
+  id            Int          @id @default(autoincrement())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id])
+
+  name          String       @default("Pro Trading Bot")
+  version       String       @default("v2.1")
+  riskProfile   String       @default("balanced")
+
+  tradeAmount   Float        @default(10)
+  tradeInterval Int          @default(60)
+  asset         String       @default("EUR/USD")
+
+  status        ProBotStatus @default(IDLE)
+  activatedAt   DateTime?
+
+  tradeCount    Int          @default(0)
+  wins          Int          @default(0)
+  profit        Float        @default(0)
+
+  passkey       Passkey?
+  logs          ProBotLog[]
+  trades        Trade[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([userId, version])
+}
+
+model ProBotLog {
   id        Int      @id @default(autoincrement())
-  botId     Int
-  bot       Bot      @relation(fields: [botId], references: [id])
+  proBotId  Int
+  proBot    ProBot   @relation(fields: [proBotId], references: [id], onDelete: Cascade)
   message   String
-  level     String   @default("info")
+  level     LogLevel @default(INFO)
   createdAt DateTime @default(now())
 }
 
-model PaperBalance {
-  id        Int      @id @default(autoincrement())
-  currency  String   @unique
-  balance   Float    @default(0)
-  updatedAt DateTime @updatedAt
+// Admin-tunable win/loss simulation, global across all ProBots
+model ProBotConfig {
+  id           Int   @id @default(autoincrement())
+  winRate      Float @default(0.55)
+  avgWinPct    Float @default(0.012)
+  avgLossPct   Float @default(0.008)
+  payoutVarPct Float @default(0.4)
 }
 
-model PaperConfig {
-  id         Int   @id @default(autoincrement())
-  winRate    Float @default(0.65)
-  maxLoss    Float @default(0.02)
-  maxGain    Float @default(0.04)
+model Trade {
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  accountId  String
+  account    Account     @relation(fields: [accountId], references: [id])
+  proBotId   Int?
+  proBot     ProBot?     @relation(fields: [proBotId], references: [id])
+
+  asset      String
+  type       String      // "WIN" | "LOSS" or buy/sell etc
+  stake      Decimal
+  payout     Decimal
+  duration   Int
+  entryPrice Decimal
+  exitPrice  Decimal?
+  profit     Decimal?
+  status     TradeStatus @default(RUNNING)
+  startTime  DateTime    @default(now())
+  endTime    DateTime?
+  createdAt  DateTime    @default(now())
 }

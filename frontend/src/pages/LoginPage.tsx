@@ -17,16 +17,13 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const loggedInUser = await login(email, password);
-      switch (loggedInUser.role) {
-      case "admin":
-        navigate("/admin");
-        break;
-      case "marketer":
-        navigate("/marketer");
-        break;
-      default:
-        navigate("/dashboard");
-    }
+      switch (loggedInUser.role?.toUpperCase()) {
+        case "ADMIN":
+          navigate("/admin");
+          break;
+        default:
+          navigate("/welcome");
+      }
     } catch {
       setError("Invalid email or password. Please try again.");
     } finally {

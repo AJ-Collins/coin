@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-  userId?: number;
+  userId?: string;
 }
 
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction) {
@@ -10,7 +10,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     req.userId = payload.userId;
     next();
   } catch {

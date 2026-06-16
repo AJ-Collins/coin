@@ -6,6 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 export default function WelcomeStats() {
   const { user } = useAuth();
 
+  const realAccount = user?.accounts?.find((acc) => acc.type === "REAL");
+  const realBalance = realAccount
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: realAccount.currency || "USD" }).format(realAccount.balance)
+    : "$0.00";
+
   const { data: summary } = useQuery({
     queryKey: ["market-summary-public"],
     queryFn: async () => {
@@ -46,7 +51,10 @@ export default function WelcomeStats() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Wallet className="h-4 w-4" />} label="Total Balance" value="$0.00" />
+        <StatCard icon={<Wallet className="h-4 w-4" />} 
+          label="Total Balance"
+          value={realBalance}
+        />
         <StatCard
           icon={<Activity className="h-4 w-4" />}
           label="24h Volume"
@@ -71,12 +79,17 @@ export default function WelcomeStats() {
 
 function StatCard({ icon, label, value, valueClass = "text-white" }: { icon: React.ReactNode; label: string; value: string; valueClass?: string }) {
   return (
-    <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-4">
+    <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-4 min-w-0">
       <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
         {icon}
         {label}
       </div>
-      <div className={`text-lg md:text-2xl font-black ${valueClass}`}>{value}</div>
+      <div 
+        className={`text-lg md:text-2xl font-black truncate ${valueClass}`} 
+        title={value}
+      >
+        {value}
+      </div>
     </div>
   );
 }

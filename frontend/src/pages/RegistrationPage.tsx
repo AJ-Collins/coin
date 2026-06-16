@@ -22,7 +22,7 @@ export default function RegistrationPage() {
     setIsLoading(true);
     try {
       await register(email, password);
-      navigate("/dashboard");
+      navigate("/welcome");
     } catch {
       setError("Could not create account. Please try again.");
     } finally {

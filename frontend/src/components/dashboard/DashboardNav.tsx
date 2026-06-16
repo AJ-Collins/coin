@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutGrid, History, ArrowDownToLine, ArrowUpFromLine,
-  Bot, Search, Wallet, User, LogOut, Menu, X,
+  Bot, Wallet, User, LogOut, Menu, X,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/welcome", label: "Dashboard", icon: LayoutGrid },
   { to: "/bots", label: "Bots", icon: Bot },
 //   { to: "/markets", label: "Markets", icon: BarChart3 },
   { to: "/deposit", label: "Deposit", icon: ArrowDownToLine },
@@ -19,6 +19,12 @@ export default function DashboardNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { logout } = useAuth();
   const location = useLocation();
+  const { user } = useAuth();
+
+  const realAccount = user?.accounts?.find((acc) => acc.type === "REAL");
+  const realBalance = realAccount
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: realAccount.currency || "USD" }).format(realAccount.balance)
+    : "$0.00";
 
   return (
     <>
@@ -57,27 +63,15 @@ export default function DashboardNav() {
           })}
         </nav>
 
-        {/* Search (desktop) */}
-        <div className="hidden lg:flex items-center flex-1 max-w-md ml-auto">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search markets..."
-              className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#39ff88]/40"
-            />
-          </div>
-        </div>
-
         {/* Right side */}
-        <div className="flex items-center gap-3 ml-auto md:ml-4">
+        <div className="flex items-center gap-3 ml-auto">
           <div className="flex items-center gap-2 bg-[#0d0f17] border border-[#1a1f28] rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold">
             <Wallet className="h-4 w-4 text-[#39ff88]" />
-            $100.00
+            {realBalance}
           </div>
-          <button onClick={() => {}} className="text-gray-400 hover:text-white cursor-pointer">
+          <Link to="/profile" className="text-gray-400 hover:text-white cursor-pointer">
             <User className="h-5 w-5" />
-          </button>
+          </Link>
           <button onClick={logout} className="text-gray-400 hover:text-[#ff4d6d] cursor-pointer">
             <LogOut className="h-5 w-5 text-[#ff4d6d]" />
           </button>
