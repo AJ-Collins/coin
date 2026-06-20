@@ -154,7 +154,7 @@ CREATE TABLE "ProBot" (
     "id" SERIAL NOT NULL,
     "userId" TEXT NOT NULL,
     "accountId" TEXT NOT NULL,
-    "name" TEXT NOT NULL DEFAULT 'Pro Trading Bot',
+    "name" TEXT NOT NULL DEFAULT 'AI ScalpingPro Bot',
     "version" TEXT NOT NULL DEFAULT 'v2.1',
     "riskProfile" TEXT NOT NULL DEFAULT 'balanced',
     "tradeAmount" DOUBLE PRECISION NOT NULL DEFAULT 10,

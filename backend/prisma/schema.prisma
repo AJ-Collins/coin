@@ -20,8 +20,6 @@ model User {
   kycStatus        KYCStatus    @default(UNVERIFIED)
   twoFactorSecret  String?
   twoFactorEnabled Boolean      @default(false)
-
-  // Each user gets exactly one HD account index for address derivation
   hdAccountIndex   Int          @unique @default(autoincrement())
 
   accounts         Account[]
@@ -32,10 +30,10 @@ model User {
   auditLogs        AuditLog[]
   passwordResetTokens PasswordResetToken[]
   proBots          ProBot[]
-  passkeys         Passkey[]
 
   referrer         User?        @relation("Referrals", fields: [referrerId], references: [id])
   referredUsers    User[]       @relation("Referrals")
+  passkeys Passkey[]
 }
 
 enum Role {
@@ -203,10 +201,9 @@ model Passkey {
   id        Int       @id @default(autoincrement())
   code      String    @unique
   label     String?
-  version   String    @default("v2.1")  // which ProBot version this unlocks
-  isUsed    Boolean   @default(false)
-  usedAt    DateTime?
-
+  version   String    @default("v2.1")
+  
+  // Relations
   userId    String?
   user      User?     @relation(fields: [userId], references: [id])
 
@@ -223,7 +220,7 @@ model ProBot {
   accountId     String
   account       Account      @relation(fields: [accountId], references: [id])
 
-  name          String       @default("Pro Trading Bot")
+  name          String       @default("AI ScalpingPro Bot")
   version       String       @default("v2.1")
   riskProfile   String       @default("balanced")
 
@@ -238,12 +235,12 @@ model ProBot {
   wins          Int          @default(0)
   profit        Float        @default(0)
 
-  passkey       Passkey?
   logs          ProBotLog[]
   trades        Trade[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  passkey Passkey?
 
   @@unique([userId, version])
 }

@@ -34,3 +34,8 @@ export interface AuthResponse {
   requiresTwoFactor?: boolean;
   tempToken?: string;
 }
+
+export interface AccountBalanceDTO {
+  balance: number;
+  currency: string;
+}

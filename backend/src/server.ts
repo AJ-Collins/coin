@@ -5,9 +5,10 @@ import http from 'http';
 import path from 'path';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
-// import tradeRoutes from './routes/tradeRoutes';
 import adminRoutes from './routes/adminRoutes';
-import { setupWebSocket } from "./ws.js";
+import { botRoutes } from './routes/botRoutes';
+import { setupWebSocket } from "./ws";
+import { resumeRunningProBots } from "./services/botEngineService";
 
 dotenv.config();
 
@@ -22,10 +23,11 @@ app.use(cors({
     // "https://www.tradenestbinary.com",
     // "https://api.tradenestbinary.com"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", 'PATCH', "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", 'Cache-Control', 'Pragma', 'Expires'],
   credentials: true
-}));
+}) as any);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -33,19 +35,26 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(import.meta.dirname, '../uploads')));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'TradeNestBinary API is running' });
+  res.json({ message: 'API is running' });
 });
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-// app.use('/api/trades', tradeRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
 
 // HTTP SERVER & SOCKETS
 const server = http.createServer(app);
 setupWebSocket(server);
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port http://localhost:${port}`);
+server.listen(port, '0.0.0.0', async () => {
+  console.log(`Server running on port: http://localhost:${port}`);
+  
+  try {
+    await resumeRunningProBots();
+    console.log("✓ Operational background bot instances restored successfully.");
+  } catch (err) {
+    console.error("❌ Critical runtime error while restoring engine background bots:", err);
+  }
 });

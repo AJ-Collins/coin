@@ -52,8 +52,8 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/welcome" element={<DashboardPage />} />
-                <Route path="/bots" element={<BotsPage />} />
-                <Route path="/bots/:id" element={<BotDetailPage />} />
+                <Route path="/trade" element={<BotsPage />} />
+                <Route path="/trade/:id" element={<BotDetailPage />} />
                 <Route path="/exchanges" element={<ExchangesPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />
                 <Route path="/deposit" element={<UserDepositsPage />} />

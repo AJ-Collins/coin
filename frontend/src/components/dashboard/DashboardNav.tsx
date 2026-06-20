@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutGrid, History, ArrowDownToLine, ArrowUpFromLine,
   Bot, Wallet, User, LogOut, Menu, X,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
+import api from "../../lib/api";
 
 const NAV_ITEMS = [
   { to: "/welcome", label: "Dashboard", icon: LayoutGrid },
-  { to: "/bots", label: "Bots", icon: Bot },
-//   { to: "/markets", label: "Markets", icon: BarChart3 },
+  { to: "/trade", label: "Bots", icon: Bot },
   { to: "/deposit", label: "Deposit", icon: ArrowDownToLine },
   { to: "/withdraw", label: "Withdraw", icon: ArrowUpFromLine },
   { to: "/history", label: "History", icon: History },
@@ -17,14 +18,21 @@ const NAV_ITEMS = [
 
 export default function DashboardNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const location = useLocation();
-  const { user } = useAuth();
+  const { data: liveAccount } = useQuery({
+    queryKey: ['accountBalance'],
+    queryFn: async () => {
+      const res = await api.get('/user/account/balance');
+      return res.data;
+    },
+    refetchInterval: 10000,
+    staleTime: 0,
+  });
 
-  const realAccount = user?.accounts?.find((acc) => acc.type === "REAL");
-  const realBalance = realAccount
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: realAccount.currency || "USD" }).format(realAccount.balance)
-    : "$0.00";
+  const balance = liveAccount?.balance ?? user?.accounts?.find(a => a.type === "REAL")?.balance ?? 0;
+  const currency = liveAccount?.currency ?? user?.accounts?.find(a => a.type === "REAL")?.currency ?? "USD";
+  const realBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(balance);
 
   return (
     <>

@@ -146,6 +146,13 @@ export const loginLimiter = createSlidingWindowLimiter({
   message: { error: 'Too many login attempts, please try again shortly.' },
 })
 
+export const botActionLimiter = createSlidingWindowLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 60,                // Allow up to 60 requests a minute (1 request per second average)
+  message: { error: 'Rate limit exceeded. System configurations are processing, please slow down.' },
+  keyGenerator: (req) => req.userId ?? req.ip ?? 'unknown', // Track by logged-in User ID
+})
+
 export const adminOnly = (...roles: string[]) => {
   return (req: any, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
