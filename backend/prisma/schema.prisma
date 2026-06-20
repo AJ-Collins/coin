@@ -102,6 +102,11 @@ enum Coin {
   USDC
   BNB
   XRP
+  SOL
+  TRX
+  TON
+  LTC
+  DOGE
 }
 
 // Per-user, per-coin, per-network deposit address (HD-derived, never stores private key)

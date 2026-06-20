@@ -7,8 +7,11 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { botRoutes } from './routes/botRoutes';
+import depositRoutes from './routes/depositRoutes';
+import withdrawalRoutes from './routes/withdrawalRoutes';
 import { setupWebSocket } from "./ws";
 import { resumeRunningProBots } from "./services/botEngineService";
+import { startEVMListener } from './listeners/evmListener';
 
 dotenv.config();
 
@@ -43,6 +46,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/deposit', depositRoutes);
+app.use('/api/withdraw', withdrawalRoutes);
 
 // HTTP SERVER & SOCKETS
 const server = http.createServer(app);
@@ -58,3 +63,15 @@ server.listen(port, '0.0.0.0', async () => {
     console.error("❌ Critical runtime error while restoring engine background bots:", err);
   }
 });
+
+if (process.env.SEPOLIA_RPC) {
+  startEVMListener('sepolia').catch(console.error);
+} else {
+  console.warn('SEPOLIA_RPC not set — listener disabled');
+}
+
+if (process.env.BSC_TESTNET_RPC) {
+  startEVMListener('bsc_testnet').catch(console.error);
+} else {
+  console.warn('BSC_TESTNET_RPC not set — listener disabled');
+}

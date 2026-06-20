@@ -81,12 +81,12 @@ export class BotController {
   static async startBot(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      // FIX: Changed "running" to "RUNNING" to match ProBotStatus enum
       const bot = await BotService.updateBotStatus(id, "RUNNING");
       await BotEngineService.activateProBot(id);
       res.json(bot);
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      const status = e.message.includes('Insufficient') ? 400 : 500;
+      res.status(status).json({ error: e.message });
     }
   }
 
@@ -144,10 +144,28 @@ export class BotController {
   static async updateBotSettings(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const settings = req.body.settings; // Ensure the frontend sends { settings: { ... } }
+      const settings = req.body.settings;
 
       if (!settings) {
         return res.status(400).json({ error: "Settings payload missing" });
+      }
+
+      const tradeAmount = parseFloat(settings.tradeAmount);
+      if (isNaN(tradeAmount) || tradeAmount < 10 || tradeAmount > 100000) {
+        return res.status(400).json({ error: "Trade amount must be between $10 and $100,000" });
+      }
+
+      const VALID_INTERVALS = ["15", "30", "60", "120", "180", "240", "300"];
+      if (!VALID_INTERVALS.includes(String(settings.tradeInterval))) {
+        return res.status(400).json({ error: "Invalid trade interval" });
+      }
+
+      const VALID_ASSETS = [
+        "GBP/JPY", "XAU/USD", "BTC/USD", "EUR/USD",
+        "USD/JPY", "GBP/USD", "AUD/USD", "USD/CAD", "USD/CHF", "NZD/USD"
+      ];
+      if (!VALID_ASSETS.includes(settings.tradingAsset)) {
+        return res.status(400).json({ error: "Invalid trading asset" });
       }
 
       const updatedBot = await BotService.updateBotSettings(id, settings);

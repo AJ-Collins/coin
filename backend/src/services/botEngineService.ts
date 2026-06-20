@@ -68,48 +68,79 @@ async function executeTradeCycle(proBotId: number) {
   
   if (!bot || bot.status !== "RUNNING") return;
 
-  if (Number(bot.account.balance) < bot.tradeAmount) {
-    await log(proBotId, `Balance $${Number(bot.account.balance).toFixed(2)} below threshold — halting systems`, "ERROR");
-    await stopProBot(proBotId);
+  const cfg = await prisma.proBotConfig.findFirst() 
+    || await prisma.proBotConfig.create({ data: {} });
+
+  const microStake = Math.max(1, Math.round(
+    (bot.tradeAmount * (0.4 + Math.random() * 0.4)) * 100
+  ) / 100);
+
+  // Atomic check-and-deduct: only deducts if balance >= microStake
+  // Returns the updated account or null if balance was insufficient
+  const deducted = await prisma.account.updateMany({
+    where: {
+      id: bot.accountId,
+      balance: { gte: microStake }, // condition checked atomically in DB
+    },
+    data: {
+      balance: { decrement: microStake },
+    },
+  });
+
+  // If no rows updated, balance was insufficient
+  if (deducted.count === 0) {
+    const current = await prisma.account.findUnique({
+      where: { id: bot.accountId },
+      select: { balance: true },
+    });
+    const currentBalance = Number(current?.balance ?? 0);
+
+    if (currentBalance < bot.tradeAmount) {
+      await log(proBotId, `Balance $${currentBalance.toFixed(2)} below threshold — halting systems`, "ERROR");
+      await stopProBot(proBotId);
+    } else {
+      await log(proBotId, `Insufficient balance for stake $${microStake.toFixed(2)} — skipping`, "WARN");
+    }
     return;
   }
 
-  const cfg = await prisma.proBotConfig.findFirst() || await prisma.proBotConfig.create({ data: {} });
-  // Use a fraction of the configured stake per micro-trade so several can fit in one cycle
-  const microStake = Math.max(1, Math.round((bot.tradeAmount * (0.4 + Math.random() * 0.4)) * 100) / 100);
+  // Stake successfully deducted — now resolve the trade
   const { isWin, pnl, direction } = simulateTrade(microStake, cfg);
-
-  // Entry price the trade is "opening" at
   const entryPrice = 1 + (Math.random() - 0.5) * 0.002;
   const exitPrice = entryPrice + (pnl / microStake) * entryPrice;
 
-  // 1. Log the analysis conclusion that led to this trade
+  // On win: return stake + profit. On loss: nothing returned (stake already gone)
+  const returnAmount = isWin ? microStake + pnl : 0;
+  const balanceDelta = isWin ? pnl : -microStake; // net for reporting
+  const payout = returnAmount;
+
   const confidence = (60 + Math.random() * 35).toFixed(1);
+
   await log(
     proBotId,
     `Signal confirmed on ${bot.asset}: ${direction} bias detected (confidence ${confidence}%)`,
     "INFO"
   );
 
-  // 2. Log the trade being opened
   await log(
     proBotId,
     `[EXECUTION] → Opening ${direction} position on ${bot.asset} | Stake: $${microStake.toFixed(2)} @ ${entryPrice.toFixed(5)}`,
     "INFO"
   );
 
+  // Only credit winnings back — stake was already deducted atomically above
   const [updatedBot, updatedAccount] = await prisma.$transaction([
     prisma.proBot.update({
       where: { id: proBotId },
       data: {
-        tradeCount: { increment: 1 }, 
-        wins: { increment: isWin ? 1 : 0 }, 
-        profit: { increment: pnl } 
+        tradeCount: { increment: 1 },
+        wins: { increment: isWin ? 1 : 0 },
+        profit: { increment: balanceDelta },
       },
     }),
     prisma.account.update({
       where: { id: bot.accountId },
-      data: { balance: { increment: pnl } },
+      data: { balance: { increment: returnAmount } }, // 0 on loss, stake+profit on win
     }),
     prisma.trade.create({
       data: {
@@ -119,38 +150,54 @@ async function executeTradeCycle(proBotId: number) {
         asset: bot.asset,
         type: isWin ? "WIN" : "LOSS",
         stake: microStake,
-        payout: microStake + pnl,
+        payout,
         duration: bot.tradeInterval,
         entryPrice,
         exitPrice,
-        profit: pnl,
+        profit: balanceDelta,
         status: "COMPLETED",
         endTime: new Date(),
       },
     }),
   ]);
 
-  // 3. Log the closed result with full breakdown
-  const sign = pnl >= 0 ? "+" : "";
   const newBalance = Number(updatedAccount.balance);
   await log(
     proBotId,
-    `[EXECUTION] ${isWin ? "✓ WIN" : "✗ LOSS"} — Closed ${direction} on ${bot.asset} @ ${exitPrice.toFixed(5)} | P&L: ${sign}$${pnl.toFixed(2)} | Balance: $${newBalance.toFixed(2)}`,
+    `[EXECUTION] ${isWin ? "✓ WIN" : "✗ LOSS"} — Closed ${direction} on ${bot.asset} @ ${exitPrice.toFixed(5)} | ${
+      isWin ? `Profit: +$${pnl.toFixed(2)}` : `Lost stake: -$${microStake.toFixed(2)}`
+    } | Balance: $${newBalance.toFixed(2)}`,
     isWin ? "SUCCESS" : "WARN"
   );
 
-  broadcast(proBotId, { message_type: "bot", data: { ...updatedBot, balance: newBalance } });
+  broadcast(proBotId, { 
+    message_type: "bot", 
+    data: { ...updatedBot, balance: newBalance } 
+  });
 }
 
 export async function activateProBot(proBotId: number) {
-  const bot = await prisma.proBot.update({
+  const bot = await prisma.proBot.findUnique({
+    where: { id: proBotId },
+    include: { account: true },
+  });
+
+  if (!bot) throw new Error('Bot not found');
+
+  // Guard: reject start if balance is insufficient
+  if (Number(bot.account.balance) < bot.tradeAmount) {
+    throw new Error(
+      `Insufficient balance. Current balance: $${Number(bot.account.balance).toFixed(2)}`
+    );
+  }
+
+  await prisma.proBot.update({
     where: { id: proBotId },
     data: { status: "RUNNING", activatedAt: new Date() },
   });
-  
+
   await log(proBotId, "✓ Bot instance initialized", "SUCCESS");
   startProBotLoop(proBotId);
-  return bot;
 }
 
 // Picks how many seconds until the next micro-trade fires.
