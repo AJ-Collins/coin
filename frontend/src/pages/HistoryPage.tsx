@@ -15,7 +15,7 @@ export default function HistoryPage() {
   const { data: deposits = [], isLoading: isDepositsLoading } = useQuery<Transaction[]>({
     queryKey: ["deposit-history"],
     queryFn: async () => {
-      const { data } = await api.get("/api/deposit/history");
+      const { data } = await api.get("/deposit/history");
       return data;
     },
   });
@@ -24,7 +24,7 @@ export default function HistoryPage() {
   const { data: withdrawals = [], isLoading: isWithdrawalsLoading } = useQuery<Transaction[]>({
     queryKey: ["withdrawal-history"],
     queryFn: async () => {
-      const { data } = await api.get("/api/withraw/history");
+      const { data } = await api.get("/withdraw/history");
       return data;
     },
   });

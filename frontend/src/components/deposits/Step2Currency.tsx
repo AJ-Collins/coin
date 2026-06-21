@@ -12,97 +12,30 @@ const getCryptoLogo = (symbol: string) =>
   `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${symbol.toLowerCase()}.png`;
 
 const CRYPTO_OPTIONS = [
-  // --- STABLECOINS ---
-  { 
-    id: "USDT", 
-    name: "Tether", 
-    symbol: "USDT", 
-    networks: ["TRC20 (Tron)", "ERC20 (Ethereum)", "BEP20 (BSC)", "Polygon", "Arbitrum", "Optimism"] 
+  {
+    id: "ETH",
+    name: "Ethereum",
+    symbol: "ETH",
+    networks: ["Ethereum", "Arbitrum One"]
   },
-  { 
-    id: "USDC", 
-    name: "USD Coin", 
-    symbol: "USDC", 
-    networks: ["ERC20 (Ethereum)", "BEP20 (BSC)", "TRC20 (Tron)", "Polygon", "Arbitrum", "Base Network"] 
+  {
+    id: "USDT",
+    name: "Tether",
+    symbol: "USDT",
+    networks: ["Ethereum", "Polygon", "Arbitrum One"]
   },
-
-  // --- BLUE CHIPS ---
-  { 
-    id: "BTC", 
-    name: "Bitcoin", 
-    symbol: "BTC", 
-    networks: ["Native Bitcoin", "Lightning Network"] 
+  {
+    id: "USDC",
+    name: "USD Coin",
+    symbol: "USDC",
+    networks: ["Ethereum", "Polygon", "Arbitrum One"]
   },
-  { 
-    id: "ETH", 
-    name: "Ethereum", 
-    symbol: "ETH", 
-    networks: ["ERC20 (Ethereum)", "Base Network", "Arbitrum One", "Optimism"] 
+  {
+    id: "BNB",
+    name: "BNB",
+    symbol: "BNB",
+    networks: ["BSC (Binance Smart Chain)"]
   },
-
-  // --- MAJOR LAYER 1s & EXCHANGE TOKENS ---
-  { 
-    id: "BNB", 
-    name: "BNB", 
-    symbol: "BNB", 
-    networks: ["BEP20 (BSC)"] 
-  },
-  { 
-    id: "SOL", 
-    name: "Solana", 
-    symbol: "SOL", 
-    networks: ["Solana"] 
-  },
-  { 
-    id: "TRX", 
-    name: "Tron", 
-    symbol: "TRX", 
-    networks: ["TRC20 (Tron)"] 
-  },
-  { 
-    id: "TON", 
-    name: "Toncoin", 
-    symbol: "TON", 
-    networks: ["TON Network"] 
-  },
-  { 
-    id: "XRP", 
-    name: "Ripple", 
-    symbol: "XRP", 
-    networks: ["Ripple Network"] 
-  },
-  { 
-    id: "ADA", 
-    name: "Cardano", 
-    symbol: "ADA", 
-    networks: ["Cardano"] 
-  },
-  { 
-    id: "AVAX", 
-    name: "Avalanche", 
-    symbol: "AVAX", 
-    networks: ["Avalanche C-Chain"] 
-  },
-
-  // --- HIGH-UTILITY UTILITY & PAYMENT COINS ---
-  { 
-    id: "LTC", 
-    name: "Litecoin", 
-    symbol: "LTC", 
-    networks: ["Litecoin"] 
-  },
-  { 
-    id: "DOGE", 
-    name: "Dogecoin", 
-    symbol: "DOGE", 
-    networks: ["Dogecoin"] 
-  },
-  { 
-    id: "LINK", 
-    name: "Chainlink", 
-    symbol: "LINK", 
-    networks: ["ERC20 (Ethereum)", "Arbitrum", "Polygon"] 
-  }
 ];
 
 export default function Step2Currency({ amount, onBack, onGenerate, isGenerating }: Step2Props) {

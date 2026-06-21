@@ -1,36 +1,44 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { CRYPTO_OPTIONS, type CryptoAsset, type Network } from "../../types/index";
+import api from "../../lib/api";
 
 interface FormProps {
-  availableBalance: number;
+  kycStatus?: string;
+  accountId?: string;
   onExecuteWithdraw: (data: {
-    currency: string;
-    network: string;
-    address: string;
+    accountId: string;
     amount: number;
-    fee: number;
+    coin: string;
+    network: string;
+    toAddress: string;
   }) => Promise<void>;
+  onKycRequired?: () => void;
 }
 
-const getCryptoLogo = (symbol: string) => 
+const getCryptoLogo = (symbol: string) =>
   `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${symbol.toLowerCase()}.png`;
 
-export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw }: FormProps) {
+export default function NewWithdrawalForm({
+  kycStatus = "UNVERIFIED",
+  accountId = "default",
+  onExecuteWithdraw,
+  onKycRequired,
+}: FormProps) {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoAsset>(CRYPTO_OPTIONS[0]);
   const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null);
   const [address, setAddress] = useState<string>("");
   const [amountInput, setAmountInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  // Dropdown UI toggle states
   const [isCryptoOpen, setIsCryptoOpen] = useState(false);
   const [isNetworkOpen, setIsNetworkOpen] = useState(false);
 
   const cryptoRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<HTMLDivElement>(null);
 
-  // Click outside listener to safely close custom menu drop-downs
   useEffect(() => {
     function clickOutside(e: MouseEvent) {
       if (cryptoRef.current && !cryptoRef.current.contains(e.target as Node)) setIsCryptoOpen(false);
@@ -40,25 +48,67 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
     return () => document.removeEventListener("mousedown", clickOutside);
   }, []);
 
-  // Compute live calculations
+  // Live balance — same pattern as DashboardNav
+  const { data: liveAccount } = useQuery({
+    queryKey: ['accountBalance'],
+    queryFn: async () => {
+      const res = await api.get('/user/account/balance');
+      return res.data;
+    },
+    refetchInterval: 10000,
+    staleTime: 0,
+  });
+
+  const availableBalance = liveAccount?.balance ?? 0;
+  const currency = liveAccount?.currency ?? "USD";
+  const formattedBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(availableBalance);
+
   const parseAmount = parseFloat(amountInput) || 0;
   const currentNetworkFee = selectedNetwork ? selectedNetwork.fee : 0;
   const receiveAmount = parseAmount > currentNetworkFee ? parseAmount - currentNetworkFee : 0;
 
+  // Form completeness — drives disabled state
+  const isFormComplete =
+    !!selectedNetwork &&
+    !!address.trim() &&
+    parseAmount >= 10 &&
+    parseAmount <= availableBalance;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedNetwork || !address || parseAmount < 10 || parseAmount > availableBalance) return;
+    setFormError(null);
+
+    if (kycStatus !== "VERIFIED") {
+      onKycRequired?.();
+      return;
+    }
+
+    if (!selectedNetwork) {
+      setFormError("Please select a network.");
+      return;
+    }
+    if (!address) {
+      setFormError("Please enter a withdrawal address.");
+      return;
+    }
+    if (parseAmount < 10) {
+      setFormError("Minimum withdrawal amount is $10.");
+      return;
+    }
+    if (parseAmount > availableBalance) {
+      setFormError("Amount exceeds your available balance.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await onExecuteWithdraw({
-        currency: selectedCrypto.symbol,
-        network: selectedNetwork.name,
-        address: address,
+        accountId,
         amount: parseAmount,
-        fee: currentNetworkFee,
+        coin: selectedCrypto.symbol,
+        network: selectedNetwork.name,
+        toAddress: address,
       });
-      // Clear forms on backend confirmation success
       setAmountInput("");
       setAddress("");
     } catch (err) {
@@ -72,7 +122,7 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
     <form onSubmit={handleSubmit} className="space-y-5 text-left">
       <div>
         <span className="text-xs font-medium text-gray-400">Available Balance</span>
-        <div className="text-xl font-bold text-white mt-0.5">${availableBalance.toFixed(2)}</div>
+        <div className="text-xl font-bold text-white mt-0.5">{formattedBalance}</div>
       </div>
 
       {/* Crypto Selection Menu */}
@@ -84,9 +134,9 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
           className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <img 
-              src={getCryptoLogo(selectedCrypto.symbol)} 
-              alt={selectedCrypto.name} 
+            <img
+              src={getCryptoLogo(selectedCrypto.symbol)}
+              alt={selectedCrypto.name}
               className="w-5 h-5 object-contain rounded-full"
               onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/generic.png"; }}
             />
@@ -104,7 +154,7 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
                 type="button"
                 onClick={() => {
                   setSelectedCrypto(crypto);
-                  setSelectedNetwork(null); // Reset network select layer to prevent error crossover
+                  setSelectedNetwork(null);
                   setIsCryptoOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 hover:bg-[#1a1f28] transition-colors ${
@@ -161,13 +211,12 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
       {/* Target Destination Wallet Address Input */}
       <div className="space-y-2 relative z-0">
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Withdrawal Address</label>
-        <input 
+        <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Enter external destination address"
           className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all font-mono"
-          required
         />
       </div>
 
@@ -176,14 +225,13 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Amount (USD)</label>
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-          <input 
+          <input
             type="number"
             step="any"
             value={amountInput}
             onChange={(e) => setAmountInput(e.target.value)}
             placeholder="100.00"
             className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-8 pr-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all"
-            required
           />
         </div>
         <p className="text-[11px] text-gray-500 pl-1">Minimum withdrawal: $10</p>
@@ -202,10 +250,16 @@ export default function NewWithdrawalForm({ availableBalance, onExecuteWithdraw 
         </div>
       </div>
 
-      {/* Execution Submission Button Trigger */}
+      {formError && (
+        <p className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+          {formError}
+        </p>
+      )}
+
+      {/* Execution Submission Button Trigger — disabled until form is fully and validly filled */}
       <button
         type="submit"
-        disabled={!selectedNetwork || !address || parseAmount < 10 || parseAmount > availableBalance || isSubmitting}
+        disabled={!isFormComplete || isSubmitting}
         className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#5dffa1] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 relative z-0"
       >
         {isSubmitting ? "Processing Submission..." : "Submit Withdrawal"}

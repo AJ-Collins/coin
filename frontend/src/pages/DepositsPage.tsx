@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api"; // Your custom axios wrapper
@@ -15,37 +15,86 @@ export default function DepositsPage() {
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState(200);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
+  const [depositConfirmed, setDepositConfirmed] = useState(false);
 
-  // 1. Calculate Real Balance safely from context payload
-  const realAccount = user?.accounts?.find((acc) => acc.type === "REAL");
-  const formattedBalance = realAccount
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: realAccount.currency || "USD" }).format(realAccount.balance)
-    : "$0.00";
+  const { data: liveAccount } = useQuery({
+    queryKey: ['accountBalance'],
+    queryFn: async () => {
+      const res = await api.get('/user/account/balance');
+      return res.data;
+    },
+    staleTime: 0,
+  });
+
+  const balance = liveAccount?.balance ?? user?.accounts?.find(a => a.type === "REAL")?.balance ?? 0;
+  const currency = liveAccount?.currency ?? user?.accounts?.find(a => a.type === "REAL")?.currency ?? "USD";
+  const formattedBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(balance);
 
   // 2. Query to load user historical transactions via React-Query
   const { data: history = [] } = useQuery({
     queryKey: ["deposit-history"],
     queryFn: async () => {
-      const { data } = await api.get("/api/deposit/history");
+      const { data } = await api.get("/deposit/history");
       return data;
+    },
+    refetchInterval: step === 3 && !depositConfirmed ? 10000 : false,
+  });
+
+  const [depositStartedAt, setDepositStartedAt] = useState<Date | null>(null);
+
+  const createDepositMutation = useMutation({
+    mutationFn: async (payload: { amount: number; currency: string; network: string }) => {
+      const { data } = await api.post("/deposit/address", {
+        coin: payload.currency,
+        network: payload.network,
+      });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      const CRYPTO_RATES: Record<string, number> = {
+        ETH: 3500, BTC: 65000, BNB: 600,
+        XRP: 0.5,  USDT: 1,    USDC: 1,
+      };
+      const rate = CRYPTO_RATES[variables.currency] ?? 1;
+
+      setDepositStartedAt(new Date()); // track when this session started
+      setPaymentDetails({
+        address: data.address,
+        amountToSend: parseFloat((variables.amount / rate).toFixed(8)),
+        currency: data.coin,
+        network: variables.network,
+        expiresInSeconds: data.expiresInSeconds ?? 3600,
+      });
+      setStep(3);
+      queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
+    },
+    onError: (err: any) => {
+      const message = err?.response?.data?.message || "Failed to generate deposit address";
+      alert(message);
     },
   });
 
-  // 3. Mutation to invoke the backend and create a new wallet target
-  const createDepositMutation = useMutation({
-    mutationFn: async (payload: { amount: number; currency: string; network: string }) => {
-      const { data } = await api.post("/api/deposits/create", payload);
-      return data; // Expected shape: { address, amountToSend, currency, network, expiresInSeconds }
-    },
-    onSuccess: (data) => {
-      setPaymentDetails(data);
-      setStep(3); // Route to the payment details screen
-      queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
-    },
-    onError: () => {
-      alert("Failed to generate deposit transaction parameter structures.");
+  const [creditedDeposit, setCreditedDeposit] = useState<any>(null);
+
+  // Detect when the latest deposit gets credited
+  useEffect(() => {
+    if (step !== 3 || !paymentDetails || depositConfirmed || !depositStartedAt) return;
+
+    const credited = history.find(
+      (d: any) =>
+        d.coin === paymentDetails.currency &&
+        d.status === "CREDITED" &&
+        new Date(d.createdAt) > depositStartedAt // only deposits after this session
+    );
+
+    if (credited) {
+      setCreditedDeposit(credited);
+      setDepositConfirmed(true);
+      queryClient.invalidateQueries({ queryKey: ["accountBalance"] });
     }
-  });
+  }, [history, step, paymentDetails, depositConfirmed, depositStartedAt]);
+
+
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 space-y-6">
@@ -88,8 +137,43 @@ export default function DepositsPage() {
           />
         )}
 
-        {step === 3 && paymentDetails && (
+        {step === 3 && paymentDetails && !depositConfirmed && (
           <Step3Payment paymentData={paymentDetails} />
+        )}
+
+        {step === 3 && depositConfirmed && (
+          <div className="flex flex-col items-center gap-4 py-8 text-center animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-[#14231c] border border-[#39ff88]/30 flex items-center justify-center">
+              <svg className="w-8 h-8 text-[#39ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white mb-1">Deposit Confirmed!</h2>
+              <p className="text-xs text-gray-400">
+                Your balance has been updated successfully.
+              </p>
+            </div>
+            <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl px-6 py-3">
+              <span className="text-[#39ff88] font-black text-xl font-mono">
+                +${creditedDeposit ? Number(creditedDeposit.usdValueAtCredit).toFixed(2) : "0.00"}
+              </span>
+              <p className="text-xs text-gray-500 mt-0.5">added to your account</p>
+            </div>
+            <button
+              onClick={() => {
+                setStep(1);
+                setPaymentDetails(null);
+                setDepositConfirmed(false);
+                setDepositStartedAt(null);
+                setCreditedDeposit(null);
+                queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
+              }}
+              className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#5dffa1] transition-colors"
+            >
+              Make Another Deposit
+            </button>
+          </div>
         )}
       </div>
 

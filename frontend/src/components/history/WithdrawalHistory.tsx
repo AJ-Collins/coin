@@ -6,76 +6,83 @@ interface HistoryProps {
   transactions: Transaction[];
 }
 
-function truncateAddress(address: string, start = 7, end = 0) {
-  if (!address) return "";
-  if (address.length <= start + end + 3) return address;
+function truncateAddress(address: string, start = 7) {
+  if (!address) return "—";
+  if (address.length <= start + 3) return address;
   return `${address.slice(0, start)}...`;
 }
 
 export default function WithdrawalHistory({ transactions }: HistoryProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopyAddress = async (id: string, text: string) => {
+  const handleCopy = async (id: string, text: string) => {
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error("Failed to copy address:", err);
+      console.error("Failed to copy:", err);
     }
   };
 
   if (transactions.length === 0) {
-    return <p className="text-xs text-gray-500 py-10 text-center">No recent withdrawals found.</p>;
+    return <p className="text-sm text-gray-500 py-12 text-center">No recent withdrawals found.</p>;
   }
 
   return (
-    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-none">
+    <div className="w-full space-y-1">
       {transactions.map((tx) => (
         <div
           key={tx.id}
-          className="bg-[#0a0d12] border border-[#1a1f28] rounded-2xl p-3.5 flex items-center justify-between gap-3 hover:border-gray-800 transition-all"
+          className="w-full flex items-center justify-between gap-4 py-3 px-1 hover:bg-white/[0.02] transition-colors rounded-lg group"
         >
-          {/* Left: Icon + Amount + Address */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 flex-shrink-0 rounded-full bg-[#10141d] border border-[#1a1f28] flex items-center justify-center text-sm font-black text-[#39ff88]">
-              {tx.currency === "USDT" ? "T" : tx.currency.charAt(0)}
+          {/* Left Section: Icon + Details */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-[#1a9e6a]/10 flex items-center justify-center text-sm font-bold text-[#1a9e6a]">
+              {tx.coin === "USDT" ? "₮" : tx.coin.charAt(0)}
             </div>
-            <div className="text-left min-w-0">
-              <div className="text-[15px] font-bold text-white leading-tight">
-                ${tx.amount.toFixed(2)}{" "}
-                <span className="text-xs font-medium text-gray-500">({tx.currency})</span>
+            <div className="text-left min-w-0 flex-1">
+              <div className="text-sm font-semibold text-white">
+                ${Number(tx.amount).toFixed(2)}
+                <span className="text-xs font-normal text-gray-500 ml-1.5">{tx.coin}</span>
               </div>
-              <div className="text-[11px] text-gray-500 font-mono mt-1 flex items-center gap-1 min-w-0">
-                <span className="truncate">{truncateAddress(tx.address)}</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopyAddress(tx.id, tx.address)}
-                  className="text-gray-600 hover:text-white p-0.5 transition-colors flex-shrink-0"
-                >
-                  {copiedId === tx.id ? (
-                    <Check className="h-2.5 w-2.5 text-[#39ff88]" />
-                  ) : (
-                    <Copy className="h-2.5 w-2.5" />
-                  )}
-                </button>
+              <div className="text-xs text-gray-600 font-mono mt-0.5 flex items-center gap-1.5">
+                <span className="truncate">{truncateAddress(tx.toAddress || "")}</span>
+                {tx.toAddress && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(tx.id, tx.toAddress!)}
+                    className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white transition-all flex-shrink-0"
+                  >
+                    {copiedId === tx.id
+                      ? <Check className="h-3 w-3 text-[#39ff88]" />
+                      : <Copy className="h-3 w-3" />}
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right: Status + Date */}
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <span className={`text-[11px] font-semibold px-3 py-1 rounded-full flex items-center gap-1 ${
-              tx.status === "Approved" ? "bg-[#0f2a1d] text-[#39ff88]" :
-              tx.status === "Pending" ? "bg-[#1a1f28] text-gray-400" : "bg-[#2a1414] text-red-400"
-            }`}>
-              {tx.status === "Approved" && <CheckCircle2 className="h-3 w-3" />}
-              {tx.status === "Pending" && <Clock className="h-3 w-3" />}
-              {tx.status === "Rejected" && <XCircle className="h-3 w-3" />}
-              {tx.status}
+          {/* Right Section: Status + Date */}
+          <div className="flex-shrink-0 flex flex-col items-end gap-1">
+            <span
+              className={`text-[10px] font-medium px-2.5 py-1 rounded-md flex items-center gap-1 whitespace-nowrap ${
+                tx.status === "APPROVED" || tx.status === "COMPLETED"
+                  ? "bg-[#1a9e6a]/10 text-[#1a9e6a]"
+                  : tx.status === "REJECTED"
+                  ? "bg-red-500/10 text-red-400"
+                  : "bg-amber-500/10 text-amber-400"
+              }`}
+            >
+              {(tx.status === "APPROVED" || tx.status === "COMPLETED") && <CheckCircle2 className="h-3 w-3" />}
+              {tx.status === "PENDING" && <Clock className="h-3 w-3" />}
+              {tx.status === "REJECTED" && <XCircle className="h-3 w-3" />}
+              {tx.status === "COMPLETED" ? "Completed" : tx.status.charAt(0) + tx.status.slice(1).toLowerCase()}
             </span>
-            <span className="text-[10px] text-gray-600 font-medium">{tx.date}</span>
+            <span className="text-[10px] text-gray-600 whitespace-nowrap">
+              {new Date(tx.createdAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
       ))}

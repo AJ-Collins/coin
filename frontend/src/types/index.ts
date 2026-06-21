@@ -96,13 +96,36 @@ export interface CryptoAsset {
 
 export interface Transaction {
   id: string;
-  amount: number;
-  currency: string;
+  coin: string;
   network: string;
-  address: string;
-  status: "Pending" | "Approved" | "Rejected";
-  txHash: string;
-  date: string;
+  amount: string | number;
+  status: string;
+  txHash?: string | null;
+  createdAt: string;
+  usdValueAtCredit?: string | number | null;
+  toAddress?: string;
+}
+
+export interface KYCDocument {
+  id: string;
+  type: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
+export interface KYCSubmission {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  submittedAt: string;
+  reviewedAt?: string;
+  adminNotes?: string;
+  documents: KYCDocument[];
+}
+
+export interface KYCStatus {
+  kycStatus: "UNVERIFIED" | "PENDING" | "VERIFIED";
+  lastSubmission?: KYCSubmission;
+  verification?: KYCSubmission; // the most recent submission, whether pending or reviewed
 }
 
 // Data Array mapped to match your exact image constraints and CDN links

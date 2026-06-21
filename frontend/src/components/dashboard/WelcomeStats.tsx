@@ -2,14 +2,24 @@ import { Link } from "react-router-dom";
 import { Bot, Wallet, Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import api from "../../lib/api";
 
 export default function WelcomeStats() {
   const { user } = useAuth();
 
-  const realAccount = user?.accounts?.find((acc) => acc.type === "REAL");
-  const realBalance = realAccount
-    ? new Intl.NumberFormat("en-US", { style: "currency", currency: realAccount.currency || "USD" }).format(realAccount.balance)
-    : "$0.00";
+  const { data: liveAccount } = useQuery({
+    queryKey: ['accountBalance'],
+    queryFn: async () => {
+      const res = await api.get('/user/account/balance');
+      return res.data;
+    },
+    refetchInterval: 10000,
+    staleTime: 0,
+  });
+
+  const balance = liveAccount?.balance ?? user?.accounts?.find(a => a.type === "REAL")?.balance ?? 0;
+  const currency = liveAccount?.currency ?? user?.accounts?.find(a => a.type === "REAL")?.currency ?? "USD";
+  const realBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(balance);
 
   const { data: summary } = useQuery({
     queryKey: ["market-summary-public"],

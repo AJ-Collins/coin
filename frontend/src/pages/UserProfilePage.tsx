@@ -31,9 +31,10 @@ export default function ProfilePage() {
 
     try {
       setIsUpdatingPassword(true);
-      await api.post("/api/password", {
-        current: password.current,
-        next: password.next,
+      await api.post("/user/password", {
+        currentPassword: password.current,
+        newPassword: password.next,
+        confirmPassword: password.confirm,
       });
 
       showNotification("Your account password has been updated successfully.");

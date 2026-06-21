@@ -10,6 +10,7 @@ interface ActiveBotProps {
 }
 
 const INTERVAL_OPTIONS = [
+  { label: "15 Seconds", value: "15" },
   { label: "30 Seconds", value: "30" },
   { label: "1 Minute", value: "60" },
   { label: "2 Minutes", value: "120" },
@@ -46,7 +47,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
   // Local state for system metrics
   const [settings, setSettings] = useState({
     tradeAmount: bot.settings?.tradeAmount || "10",
-    tradeInterval: bot.settings?.tradeInterval || "30",
+    tradeInterval: bot.settings?.tradeInterval || "15",
     tradingAsset: bot.settings?.tradingAsset || "EUR/USD"
   });
 
@@ -67,6 +68,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
   // Snapshot taken when a run starts, used to compute the session's own P&L on stop
   const [sessionStart, setSessionStart] = useState<{ profit: number; balance: number } | null>(null);
   const [lastSessionResult, setLastSessionResult] = useState<{ pnl: number; balance: number } | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   // Fetch live stats from the backend
   const { data: statsData } = useQuery({
@@ -234,6 +236,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       return api.post(`/bot/${bot.id}/toggle/status`, { status: targetStatus });
     },
     onSuccess: (_, variables) => {
+      setSettingsError(null);
       setStatus(variables);
       if (variables === "running") {
         setServerElapsed(0);
@@ -249,6 +252,10 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
         ...prev, 
         `[${new Date().toLocaleTimeString()}] Bot ${variables.toUpperCase()}.`
       ]);
+    },
+    onError: (err: any) => {
+      const message = err?.response?.data?.error || "Something went wrong";
+      setSettingsError(message);
     }
   });
 
@@ -353,6 +360,12 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
           </div>
         </div>
       </div>
+
+      {settingsError && (
+        <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+          <p className="text-red-400 text-xs font-mono">{settingsError}</p>
+        </div>
+      )}
 
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-4">
         <div className="flex items-center justify-between gap-4">
