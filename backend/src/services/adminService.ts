@@ -20,7 +20,7 @@ export class AdminService {
         const randomNum = Math.floor(Math.random() * 10);
         result = result.substring(0, randomPos) + randomNum + result.substring(randomPos + 1);
       }
-      
+
       return result;
     };
 
@@ -43,7 +43,7 @@ export class AdminService {
     if (isNaN(numericId)) {
         throw new Error("Invalid Passkey ID format");
     }
-    return await prisma.passkey.delete({ 
+    return await prisma.passkey.delete({
         where: { id: numericId }
     });
     }
@@ -481,7 +481,6 @@ static async retryFailedDeposit(depositId: string) {
     throw new Error('Only FAILED or PENDING deposits can be retried');
   }
 
-  // Re-credit the account and mark as CREDITED
   const usdValue = Number(deposit.usdValueAtCredit ?? 0);
   if (usdValue <= 0) throw new Error('No USD value to credit — update usdValueAtCredit first');
 
@@ -495,6 +494,88 @@ static async retryFailedDeposit(depositId: string) {
       data: { balance: { increment: usdValue } },
     }),
   ]);
+}
+
+static async getAllWithdrawals(page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
+  const [withdrawals, total] = await Promise.all([
+    prisma.withdrawal.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        user: { select: { id: true, email: true } },
+      },
+    }),
+    prisma.withdrawal.count(),
+  ]);
+
+  return {
+    withdrawals: withdrawals.map(w => ({
+      id: w.id,
+      user: w.user.email,
+      userId: w.user.id,
+      amount: Number(w.amount),
+      coin: w.coin,
+      network: w.network,
+      toAddress: w.toAddress,
+      status: w.status,
+      txHash: w.txHash,
+      createdAt: w.createdAt,
+      updatedAt: w.updatedAt,
+    })),
+    total,
+    page,
+    limit,
+    pages: Math.ceil(total / limit),
+  };
+}
+
+static async getWithdrawalStats() {
+  const [total, pending, approved, completed, rejected, volumeResult] = await Promise.all([
+    prisma.withdrawal.count(),
+    prisma.withdrawal.count({ where: { status: 'PENDING' } }),
+    prisma.withdrawal.count({ where: { status: 'APPROVED' } }),
+    prisma.withdrawal.count({ where: { status: 'COMPLETED' } }),
+    prisma.withdrawal.count({ where: { status: 'REJECTED' } }),
+    prisma.withdrawal.aggregate({
+      where: { status: 'COMPLETED' },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  return {
+    total,
+    pending,
+    approved,
+    completed,
+    rejected,
+    totalVolume: Number(volumeResult._sum.amount ?? 0),
+  };
+}
+
+static async updateWithdrawalStatus(withdrawalId: string, status: string, txHash?: string) {
+  const updateData: any = { status };
+  if (txHash) updateData.txHash = txHash;
+
+  const withdrawal = await prisma.withdrawal.update({
+    where: { id: withdrawalId },
+    data: updateData,
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: 'WITHDRAWAL_STATUS_UPDATED',
+      metadata: JSON.stringify({
+        withdrawalId: withdrawal.id,
+        status,
+        txHash,
+      }),
+    },
+  });
+
+  return withdrawal;
 }
 
 static async getAdminProfile(id: string) {
@@ -538,7 +619,6 @@ static async manualCreditDeposit(data: {
   txHash: string;
   usdValue: number;
 }) {
-  // Check if already credited
   const existing = await prisma.deposit.findUnique({
     where: { txHash: data.txHash },
   });
@@ -546,24 +626,8 @@ static async manualCreditDeposit(data: {
     return { alreadyCredited: true, deposit: existing };
   }
 
-  // Look up which address this tx went to by checking all our deposit addresses
-  // We do this by finding the deposit address that matches the tx
-  // Admin must have verified the tx on etherscan before calling this
-  // so we trust the txHash is real — we just need to find which user it belongs to
-  const depositAddress = await prisma.depositAddress.findFirst({
-    where: {
-      deposits: {
-        none: {}, // hasn't been credited yet
-      },
-    },
-    // We'll match by looking up the tx externally — for now admin provides txHash
-    // and we scan our watched addresses to find the match
-  });
-
-  // Better approach: scan all deposit addresses and let admin just provide txHash
-  // We verify by checking the tx on-chain
   const { ethers } = await import('ethers');
-  
+
   const RPC_MAP: Record<string, string> = {
     sepolia:          process.env.SEPOLIA_RPC!,
     eth_mainnet:      process.env.ETH_MAINNET_RPC!,
@@ -571,7 +635,6 @@ static async manualCreditDeposit(data: {
     bsc_mainnet:      process.env.BSC_MAINNET_RPC!,
   };
 
-  // Try each network to find the tx
   let foundTx: any = null;
   let foundNetwork: string | null = null;
 
@@ -597,7 +660,6 @@ static async manualCreditDeposit(data: {
   const toAddress = foundTx.to.toLowerCase();
   const amountCrypto = parseFloat(ethers.utils.formatEther(foundTx.value));
 
-  // Find the deposit address in our DB
   const depositAddr = await prisma.depositAddress.findFirst({
     where: {
       address: { equals: toAddress, mode: 'insensitive' },

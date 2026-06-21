@@ -258,56 +258,77 @@ static async updatePassword(req: Request, res: Response) {
   }
 }
 
-static async manualCreditDeposit(req: Request, res: Response) {
+static async getWithdrawals(req: Request, res: Response) {
   try {
-    const { txHash, usdValue } = req.body;
-
-    if (!txHash || !usdValue) {
-      return res.status(400).json({ error: 'txHash and usdValue are required' });
-    }
-
-    if (!validateTxHash(txHash)) {
-      return res.status(400).json({ error: 'txHash must be 66-char hex string (0x...)' });
-    }
-
-    const usdNum = Number(usdValue);
-    if (isNaN(usdNum) || usdNum <= 0) {
-      return res.status(400).json({ error: 'usdValue must be a positive number' });
-    }
-
-    if (usdNum > 10_000_000) {
-      return res.status(400).json({ error: 'usdValue exceeds maximum allowed ($10M)' });
-    }
-
-    const result = await AdminService.manualCreditDeposit({
-      txHash: txHash.trim(),
-      usdValue: usdNum,
-    });
-
-    if (result.alreadyCredited) {
-      return res.json({
-        success: true,
-        alreadyCredited: true,
-        message: 'Transaction already credited — no changes made',
-      });
-    }
-
-    res.json({
-      success: true,
-      alreadyCredited: false,
-      message: `Credited $${usdNum.toFixed(2)} to user ${result.userId}`,
-      details: {
-        userId: result.userId,
-        coin: result.coin,
-        network: result.network,
-        toAddress: result.toAddress,
-        amountCrypto: result.amountCrypto,
-        usdValue: result.usdValue,
-      },
-    });
+    const { page, limit } = clampPageAndLimit(req.query.page as string, req.query.limit as string);
+    const result = await AdminService.getAllWithdrawals(page, limit);
+    res.json(result);
   } catch (e: any) {
-    const status = e.message.includes('not found') || e.message.includes('not registered') ? 404 : 500;
-    res.status(status).json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 }
+
+static async getWithdrawalStats(req: Request, res: Response) {
+  try {
+    const stats = await AdminService.getWithdrawalStats();
+    res.json(stats);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+static async updateWithdrawalStatus(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { status, txHash } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });
+    }
+
+    const result = await AdminService.updateWithdrawalStatus(id, status, txHash);
+    res.json({ success: true, withdrawal: result });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+ static async manualCreditDeposit(req: Request, res: Response) {
+    try {
+      const { txHash, usdValue } = req.body;
+
+      if (!txHash || typeof txHash !== 'string') {
+        return res.status(400).json({ error: 'txHash is required' });
+      }
+
+      if (usdValue === undefined || usdValue === null || isNaN(Number(usdValue)) || Number(usdValue) <= 0) {
+        return res.status(400).json({ error: 'usdValue must be a positive number' });
+      }
+
+      const result = await AdminService.manualCreditDeposit({
+        txHash,
+        usdValue: Number(usdValue),
+      });
+
+      if (result.alreadyCredited) {
+        return res.status(200).json({
+          message: 'Deposit was already credited previously',
+          deposit: result.deposit,
+        });
+      }
+
+      return res.status(201).json({
+        message: 'Deposit credited successfully',
+        ...result,
+      });
+    } catch (err: any) {
+      console.error('manualCreditDeposit error:', err);
+      return res.status(400).json({ error: err.message || 'Failed to credit deposit' });
+    }
+  }
 }

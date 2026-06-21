@@ -34,6 +34,8 @@ model User {
   referrer         User?        @relation("Referrals", fields: [referrerId], references: [id])
   referredUsers    User[]       @relation("Referrals")
   passkeys Passkey[]
+  kycVerifications KYCVerification[]
+  kycDocuments     KYCDocument[]
 }
 
 enum Role {
@@ -54,6 +56,11 @@ enum KYCStatus {
   REJECTED
 }
 
+enum DocumentType {
+  ID_FRONT
+  ID_BACK
+}
+
 model PasswordResetToken {
   id        String   @id @default(uuid())
   userId    String
@@ -62,6 +69,39 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model KYCVerification {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      KYCStatus    @default(UNVERIFIED)
+  documents   KYCDocument[]
+  adminNotes  String?
+  submittedAt DateTime     @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?      // admin user ID
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model KYCDocument {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kycVerificationId String
+  kycVerification   KYCVerification @relation(fields: [kycVerificationId], references: [id], onDelete: Cascade)
+  documentType      DocumentType    // ID_FRONT or ID_BACK
+  fileName          String
+  fileUrl           String
+  mimeType          String
+  uploadedAt        DateTime        @default(now())
+
+  @@unique([kycVerificationId, documentType])
+  @@index([userId])
 }
 
 model AuditLog {
@@ -175,6 +215,8 @@ model Withdrawal {
   coin      Coin             // coin to send out
   network   String
   toAddress String
+
+  kycVerificationId String?  // reference to KYC used for this withdrawal
 
   status    WithdrawalStatus @default(PENDING)
   txHash    String?          // set once broadcast

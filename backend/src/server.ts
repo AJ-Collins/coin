@@ -9,6 +9,7 @@ import adminRoutes from './routes/adminRoutes';
 import { botRoutes } from './routes/botRoutes';
 import depositRoutes from './routes/depositRoutes';
 import withdrawalRoutes from './routes/withdrawalRoutes';
+import kycRoutes from './routes/kycRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import { setupWebSocket } from "./ws";
 import { resumeRunningProBots } from "./services/botEngineService";
@@ -50,6 +51,7 @@ app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/deposit', depositRoutes);
 app.use('/api/withdraw', withdrawalRoutes);
+app.use('/api/kyc', kycRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);

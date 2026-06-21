@@ -34,6 +34,10 @@ router.get("/deposits", AdminController.getDeposits);
 router.get("/deposits/stats", AdminController.getDepositStats);
 router.post("/deposits/:id/retry", AdminController.retryDeposit);
 
+router.get("/withdrawals", AdminController.getWithdrawals);
+router.get("/withdrawals/stats", AdminController.getWithdrawalStats);
+router.patch("/withdrawals/:id/status", AdminController.updateWithdrawalStatus);
+
 router.get("/profile", AdminController.getProfile);
 router.patch("/profile", AdminController.updateProfile);
 router.patch("/profile/password", AdminController.updatePassword);

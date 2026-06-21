@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
+import { WithdrawalService } from '../services/withdrawalService';
 import { AccountBalanceDTO } from '../types/auth.types';
 
 export class UserController {
@@ -36,6 +37,46 @@ export class UserController {
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
+    }
+  }
+
+  static async getWithdrawalHistory(req: Request, res: Response) {
+    try {
+      const userId = req.user!.id;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+      const withdrawals = await WithdrawalService.getWithdrawalHistory(userId, limit);
+      return res.json({ withdrawals });
+    } catch (err: any) {
+      console.error('getWithdrawalHistory error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async requestWithdrawal(req: Request, res: Response) {
+    try {
+      const userId = req.user!.id;
+      const { accountId, amount, coin, network, toAddress } = req.body;
+
+      if (!accountId || !amount || !coin || !network || !toAddress) {
+        return res.status(400).json({ error: 'accountId, amount, coin, network, and toAddress are required' });
+      }
+
+      // Throws if ineligible (KYC not verified, admin role, etc.)
+      await WithdrawalService.validateWithdrawalEligibility(userId);
+
+      const withdrawal = await WithdrawalService.requestWithdrawal({
+        userId,
+        accountId,
+        amount,
+        coin,
+        network,
+        toAddress,
+      });
+
+      return res.status(201).json({ withdrawal });
+    } catch (err: any) {
+      console.error('requestWithdrawal error:', err);
+      return res.status(400).json({ error: err.message || 'Failed to request withdrawal' });
     }
   }
 }
