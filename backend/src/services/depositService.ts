@@ -1,82 +1,55 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { Coin } from '@prisma/client';
 import { generateEVMAddress } from '../wallets/evm';
-import { generateBTCAddress } from '../wallets/bitcoin';
-import { generateXRPAddress } from '../wallets/xrp';
-import { generateTronAddress } from '../wallets/tron';
-import { generateSolanaAddress } from '../wallets/solana';
-import { generateLitecoinAddress } from '../wallets/litecoin';
-import { generateDogecoinAddress } from '../wallets/dogecoin';
-import { generateTONAddress } from '../wallets/ton';
+import { registerAddressWithAlchemy, isEVMNetwork } from '../webhooks/alchemyWebhook';
+import { SupportedNetwork, SUPPORTED_NETWORKS } from '../config/networks';
 
-type GeneratorType = 'evm' | 'btc' | 'xrp' | 'tron' | 'solana' | 'ltc' | 'doge' | 'ton';
+type GeneratorType = 'evm';
 
-const NETWORK_TYPE: Record<string, GeneratorType> = {
+// Only EVM networks are supported right now — all 5 configured networks use the same generator.
+const NETWORK_TYPE: Record<SupportedNetwork, GeneratorType> = {
   sepolia:          'evm',
   eth_mainnet:      'evm',
   bsc_testnet:      'evm',
-  bsc_mainnet:      'evm',
   polygon_mainnet:  'evm',
   arbitrum_mainnet: 'evm',
-  optimism_mainnet: 'evm',
-  base_mainnet:     'evm',
-  btc_testnet:      'btc',
-  btc_mainnet:      'btc',
-  xrp_testnet:      'xrp',
-  xrp_mainnet:      'xrp',
-  tron_mainnet:     'tron',
-  solana_mainnet:   'solana',
-  litecoin_mainnet: 'ltc',
-  dogecoin_mainnet: 'doge',
-  ton_mainnet:      'ton',
 };
 
-const VALID_NETWORKS: Record<string, string[]> = {
-  ETH:  ['sepolia', 'eth_mainnet', 'arbitrum_mainnet', 'optimism_mainnet', 'base_mainnet'],
-  USDT: ['sepolia', 'bsc_testnet', 'tron_mainnet', 'polygon_mainnet', 'arbitrum_mainnet', 'optimism_mainnet'],
-  USDC: ['sepolia', 'bsc_testnet', 'tron_mainnet', 'polygon_mainnet', 'arbitrum_mainnet', 'base_mainnet'],
-  BNB:  ['bsc_testnet', 'bsc_mainnet'],
-  BTC:  ['btc_testnet', 'btc_mainnet'],
-  XRP:  ['xrp_testnet', 'xrp_mainnet'],
-  SOL:  ['solana_mainnet'],
-  TRX:  ['tron_mainnet'],
-  TON:  ['ton_mainnet'],
-  LTC:  ['litecoin_mainnet'],
-  DOGE: ['dogecoin_mainnet'],
+const VALID_NETWORKS: Record<string, SupportedNetwork[]> = {
+  ETH:  ['sepolia', 'eth_mainnet', 'arbitrum_mainnet'],
+  USDT: ['sepolia', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet'],
+  USDC: ['sepolia', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet'],
+  BNB:  ['bsc_testnet'],
 };
 
-async function runGenerator(
-  generatorType: GeneratorType,
-  index: number
-): Promise<{ address: string; path: string }> {
+async function runGenerator(generatorType: GeneratorType, index: number) {
   switch (generatorType) {
-    case 'evm':    return generateEVMAddress(index);
-    case 'btc':    return generateBTCAddress(index);
-    case 'xrp':    return generateXRPAddress(index);
-    case 'tron':   return generateTronAddress(index);
-    case 'solana': return generateSolanaAddress(index);
-    case 'ltc':    return generateLitecoinAddress(index);
-    case 'doge':   return generateDogecoinAddress(index);
-    case 'ton':    return generateTONAddress(index);
+    case 'evm': return generateEVMAddress(index);
   }
 }
 
-export async function getOrCreateDepositAddress(userId: string, coin: string, network: string) {
+export async function getOrCreateDepositAddress(
+  userId: string,
+  coin: string,
+  network: string
+) {
   const coinUpper = coin.toUpperCase() as Coin;
+
+  if (!SUPPORTED_NETWORKS.includes(network as SupportedNetwork)) {
+    throw new Error(`Unsupported network: ${network}`);
+  }
+  const supportedNetwork = network as SupportedNetwork;
 
   if (!VALID_NETWORKS[coinUpper]) {
     throw new Error(`Unsupported coin: ${coin}`);
   }
-  if (!VALID_NETWORKS[coinUpper].includes(network)) {
+  if (!VALID_NETWORKS[coinUpper].includes(supportedNetwork)) {
     throw new Error(`${coin} not supported on ${network}`);
   }
 
-  const generatorType = NETWORK_TYPE[network];
-  if (!generatorType) {
-    throw new Error(`No address generator configured for network: ${network}`);
-  }
+  const generatorType = NETWORK_TYPE[supportedNetwork];
 
-  // Return existing address if already generated
   const existing = await prisma.depositAddress.findUnique({
     where: { userId_coin_network: { userId, coin: coinUpper, network } },
   });
@@ -84,7 +57,6 @@ export async function getOrCreateDepositAddress(userId: string, coin: string, ne
     return { address: existing.address, coin: coinUpper, network, reused: true };
   }
 
-  // Fetch HD index for deterministic derivation
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { hdAccountIndex: true },
@@ -103,9 +75,20 @@ export async function getOrCreateDepositAddress(userId: string, coin: string, ne
     },
   });
 
+  if (isEVMNetwork(network)) {
+    registerAddressWithAlchemy(result.address, network).catch(err =>
+      console.error(`[Alchemy] Background registration failed for ${result.address}:`, err.message)
+    );
+  }
+
   return { address: result.address, coin: coinUpper, network, reused: false };
 }
 
+/**
+ * Fix #6: rely on the database's unique constraint on txHash as the real
+ * idempotency guard, instead of a check-then-act read (which races under
+ * concurrent webhook deliveries). Prisma error P2002 = unique violation.
+ */
 export async function creditDeposit(
   txHash: string,
   userId: string,
@@ -114,36 +97,41 @@ export async function creditDeposit(
   amountCrypto: number,
   usdValue: number
 ) {
-  // Idempotent — skip if already recorded
-  const existing = await prisma.deposit.findUnique({ where: { txHash } });
-  if (existing) return null;
-
   const depositAddress = await prisma.depositAddress.findUnique({
     where: { userId_coin_network: { userId, coin, network } },
   });
   if (!depositAddress) throw new Error('Deposit address not found');
 
-  const [deposit] = await prisma.$transaction([
-    prisma.deposit.create({
-      data: {
-        userId,
-        depositAddressId: depositAddress.id,
-        coin,
-        network,
-        txHash,
-        amount: amountCrypto,
-        usdValueAtCredit: usdValue,
-        status: 'CREDITED',
-        creditedAt: new Date(),
-      },
-    }),
-    prisma.account.update({
-      where: { userId_type: { userId, type: 'REAL' } },
-      data: { balance: { increment: usdValue } },
-    }),
-  ]);
-
-  return deposit;
+  try {
+    const [deposit] = await prisma.$transaction([
+      prisma.deposit.create({
+        data: {
+          userId,
+          depositAddressId: depositAddress.id,
+          coin,
+          network,
+          txHash, // must have a @unique constraint in schema.prisma
+          amount: amountCrypto,
+          usdValueAtCredit: usdValue,
+          status: 'CREDITED',
+          creditedAt: new Date(),
+        },
+      }),
+      prisma.account.update({
+        where: { userId_type: { userId, type: 'REAL' } },
+        data: { balance: { increment: usdValue } },
+      }),
+    ]);
+    return deposit;
+  } catch (err: any) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      // Another concurrent webhook delivery already inserted this txHash first.
+      // This is the expected, race-safe outcome — not an error.
+      console.log(`[creditDeposit] Duplicate txHash ${txHash} caught by unique constraint — skipping`);
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function markDepositSwept(depositId: string, sweptTx: string) {
@@ -159,14 +147,36 @@ export async function fetchDepositHistory(userId: string) {
     orderBy: { createdAt: 'desc' },
     take: 20,
     select: {
-      id: true,
-      coin: true,
-      network: true,
-      amount: true,
-      usdValueAtCredit: true,
-      status: true,
-      txHash: true,
-      createdAt: true,
+      id: true, coin: true, network: true, amount: true,
+      usdValueAtCredit: true, status: true, txHash: true, createdAt: true,
     },
   });
+}
+
+export async function syncExistingAddressesWithAlchemy() {
+  const addresses = await prisma.depositAddress.findMany({
+    where: { network: { in: SUPPORTED_NETWORKS } },
+    select: { address: true, network: true },
+  });
+
+  if (addresses.length === 0) {
+    console.log('[Alchemy] No existing EVM addresses to sync');
+    return;
+  }
+
+  console.log(`[Alchemy] Syncing ${addresses.length} existing addresses...`);
+
+  const byNetwork: Record<string, string[]> = {};
+  for (const a of addresses) {
+    (byNetwork[a.network] ??= []).push(a.address);
+  }
+
+  for (const [network, addrs] of Object.entries(byNetwork)) {
+    try {
+      await registerAddressWithAlchemy(addrs, network);
+      console.log(`[Alchemy] Synced ${addrs.length} addresses on ${network}`);
+    } catch (err: any) {
+      console.error(`[Alchemy] Sync failed for ${network}:`, err.message);
+    }
+  }
 }

@@ -1,46 +1,31 @@
 import { Request, Response } from 'express';
 import { getOrCreateDepositAddress, fetchDepositHistory } from '../services/depositService';
 
+// UI label -> internal network key. Only the 5 networks with real Alchemy webhooks.
 const NETWORK_MAP: Record<string, string> = {
-  "ERC20 (Ethereum)":   "sepolia",
-  "BEP20 (BSC)":        "bsc_testnet",
-  "Native Bitcoin":     "btc_testnet",
-  "Lightning Network":  "btc_testnet",
-  "Ripple Network":     "xrp_testnet",
-  "TRC20 (Tron)":       "tron_mainnet",
-  "Polygon":            "polygon_mainnet",
-  "Arbitrum":           "arbitrum_mainnet",
-  "Arbitrum One":       "arbitrum_mainnet",
-  "Optimism":           "optimism_mainnet",
-  "Base Network":       "base_mainnet",
-  "Solana":             "solana_mainnet",
-  "TON Network":        "ton_mainnet",
-  "Cardano":            "cardano_mainnet",
-  "Avalanche C-Chain":  "avalanche_mainnet",
-  "Litecoin":           "litecoin_mainnet",
-  "Dogecoin":           "dogecoin_mainnet",
+  'Ethereum (Sepolia testnet)': 'sepolia',
+  'Ethereum':                   'eth_mainnet',
+  'BSC (testnet)':              'bsc_testnet',
+  'Polygon':                    'polygon_mainnet',
+  'Arbitrum One':                'arbitrum_mainnet',
 };
 
 export async function generateDepositAddress(req: Request, res: Response) {
   try {
     const userId = req.user!.id;
     const { coin, network } = req.body;
-
     if (!coin || !network) {
       return res.status(400).json({ message: 'coin and network are required' });
     }
-
     const internalNetwork = NETWORK_MAP[network];
     if (!internalNetwork) {
       return res.status(400).json({ message: `Unsupported network: ${network}` });
     }
-
     const result = await getOrCreateDepositAddress(userId, coin, internalNetwork);
-
     return res.json({
       address: result.address,
       coin: result.coin,
-      network,           // return the UI label back to frontend
+      network,
       reused: result.reused,
       expiresInSeconds: 3600,
     });

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { AuthRequest } from '../middleware/auth';
+import { validateEmail } from '../utils/validators';
 
 export class AuthController {
   static async register(req: Request, res: Response) {
@@ -29,9 +30,9 @@ export class AuthController {
    */
   static async forgotPassword(req: Request, res: Response): Promise<void> {
     try {
-      const { email } = req.body;
-      if (!email) {
-        res.status(400).json({ error: 'EMAIL_REQUIRED' });
+      const email = ((req.body.email || '').trim());
+      if (!email || !validateEmail(email)) {
+        res.status(400).json({ error: 'INVALID_EMAIL_FORMAT' });
         return;
       }
 

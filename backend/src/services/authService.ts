@@ -139,9 +139,9 @@ export class AuthService {
       },
     });
 
-    // TODO: Hand off payload to your mail client infrastructure
-    // await EmailService.sendPasswordResetEmail(user.email, resetToken);
-    console.log(`[DEV ONLY] Reset Token for ${email}: ${resetToken}`);
+    // TODO: Send password reset email via EmailService
+    // For now, admins must retrieve token from database if needed
+    // In production, use email sending service (SendGrid, AWS SES, etc.)
 
     return { message: 'PASSWORD_RESET_EMAIL_SENT' };
   }

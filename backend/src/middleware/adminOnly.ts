@@ -161,3 +161,10 @@ export const adminOnly = (...roles: string[]) => {
     next()
   }
 }
+
+export const depositCreditLimiter = createSlidingWindowLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,                   // 30 requests per window
+  message: { error: 'Too many deposit credit requests, please try again later.' },
+  keyGenerator: (req) => req.userId ?? req.ip ?? 'unknown',
+})
