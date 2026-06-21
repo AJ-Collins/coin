@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const userId = req.user?.id;
     if (!userId) {
-      return cb(new Error('User not authenticated'));
+      return cb(new Error('User not authenticated'), '');
     }
     const userDir = path.join(UPLOAD_DIR, userId);
     if (!fs.existsSync(userDir)) {

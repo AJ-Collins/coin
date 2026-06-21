@@ -53,6 +53,37 @@ services:
     command: node dist/workers/index.js
     # Scale this independently of `api` if deposit volume grows:
     #   docker compose up -d --scale deposit-worker=3
+  
+  sweeper-worker:
+    build: .
+    container_name: aiscalping_sweeper
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MASTER_MNEMONIC: ${MASTER_MNEMONIC}
+      HOT_WALLET_ADDRESS: ${HOT_WALLET_ADDRESS}
+      HOT_WALLET_PRIVATE_KEY: ${HOT_WALLET_PRIVATE_KEY}
+      MIN_SWEEP_ETH: ${MIN_SWEEP_ETH:-0.001}
+      SEPOLIA_RPC: ${SEPOLIA_RPC}
+      ETH_MAINNET_RPC: ${ETH_MAINNET_RPC}
+      BSC_TESTNET_RPC: ${BSC_TESTNET_RPC}
+      POLYGON_MAINNET_RPC: ${POLYGON_MAINNET_RPC}
+      ARBITRUM_MAINNET_RPC: ${ARBITRUM_MAINNET_RPC}
+      SEPOLIA_USDT_CONTRACT: ${SEPOLIA_USDT_CONTRACT}
+      SEPOLIA_USDC_CONTRACT: ${SEPOLIA_USDC_CONTRACT}
+      BSC_TESTNET_USDT_CONTRACT: ${BSC_TESTNET_USDT_CONTRACT}
+      BSC_TESTNET_USDC_CONTRACT: ${BSC_TESTNET_USDC_CONTRACT}
+      POLYGON_USDT_CONTRACT: ${POLYGON_USDT_CONTRACT}
+      POLYGON_USDC_CONTRACT: ${POLYGON_USDC_CONTRACT}
+      ARBITRUM_USDT_CONTRACT: ${ARBITRUM_USDT_CONTRACT}
+      ARBITRUM_USDC_CONTRACT: ${ARBITRUM_USDC_CONTRACT}
+      SWEEP_INTERVAL_MS: 120000
+    command: node dist/workers/sweeperIndex.js
 
 volumes:
   postgres_data:
