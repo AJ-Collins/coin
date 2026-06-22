@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { BotService } from "../services/botService";
-import * as BotEngineService from "../services/botEngineService";
+import { BotService } from "../services/botService.js";
+import * as BotEngineService from "../services/botEngineService.js";
 
 export class BotController {
   static async activateBotWithKey(req: Request, res: Response) {

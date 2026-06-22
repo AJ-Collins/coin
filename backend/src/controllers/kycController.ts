@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { KYCService } from '../services/kycService';
+import { KYCService } from '../services/kycService.js';
 
 export class KYCController {
   static async submitKYC(req: Request, res: Response) {

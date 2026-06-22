@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
-import { generateDepositAddress, getDepositHistory } from '../controllers/depositController';
+import { authenticate } from '../middleware/auth.js';
+import { generateDepositAddress, getDepositHistory } from '../controllers/depositController.js';
 
 const router = Router();
 

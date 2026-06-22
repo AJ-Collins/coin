@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { BotController } from "../controllers/botController";
-import { authenticate } from '../middleware/auth';
-import { botActionLimiter } from "../middleware/adminOnly";
+import { BotController } from "../controllers/botController.js";
+import { authenticate } from '../middleware/auth.js';
+import { botActionLimiter } from "../middleware/adminOnly.js";
 
 const router = Router();
 router.use(authenticate);

@@ -8,40 +8,124 @@ interface Step2Props {
   isGenerating: boolean;
 }
 
-const getCryptoLogo = (symbol: string) => 
+const getCryptoLogo = (symbol: string) =>
   `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${symbol.toLowerCase()}.png`;
 
+// Network strings must exactly match the keys in depositController NETWORK_MAP
 const CRYPTO_OPTIONS = [
   {
     id: "ETH",
     name: "Ethereum",
     symbol: "ETH",
-    networks: ["Ethereum", "Arbitrum One"]
+    networks: [
+      { label: "Ethereum Mainnet",      value: "Ethereum" },
+      { label: "Arbitrum One",          value: "Arbitrum One" },
+      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+    ],
   },
   {
     id: "USDT",
     name: "Tether",
     symbol: "USDT",
-    networks: ["Ethereum", "Polygon", "Arbitrum One"]
+    networks: [
+      // No Ethereum mainnet — USDT contract not configured there
+      { label: "Polygon",               value: "Polygon" },
+      { label: "Arbitrum One",          value: "Arbitrum One" },
+      { label: "BSC (testnet)",         value: "BSC (testnet)" },
+      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+    ],
   },
   {
     id: "USDC",
     name: "USD Coin",
     symbol: "USDC",
-    networks: ["Ethereum", "Polygon", "Arbitrum One"]
+    networks: [
+      // Same as USDT — no Ethereum mainnet contract configured
+      { label: "Polygon",               value: "Polygon" },
+      { label: "Arbitrum One",          value: "Arbitrum One" },
+      { label: "BSC (testnet)",         value: "BSC (testnet)" },
+      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+    ],
   },
   {
     id: "BNB",
     name: "BNB",
     symbol: "BNB",
-    networks: ["BSC (Binance Smart Chain)"]
+    networks: [
+      { label: "BNB Smart Chain (testnet)", value: "BSC (testnet)" },
+    ],
+  },
+  {
+    id: "MATIC",
+    name: "Polygon",
+    symbol: "MATIC",
+    networks: [
+      { label: "Polygon",               value: "Polygon" },
+    ],
+  },
+  {
+    id: "BTC",
+    name: "Bitcoin",
+    symbol: "BTC",
+    networks: [
+      { label: "Bitcoin",               value: "Bitcoin" },
+      { label: "Bitcoin (testnet)",     value: "Bitcoin (testnet)" },
+    ],
+  },
+  {
+    id: "SOL",
+    name: "Solana",
+    symbol: "SOL",
+    networks: [
+      { label: "Solana",                value: "Solana" },
+    ],
+  },
+  {
+    id: "TON",
+    name: "Toncoin",
+    symbol: "TON",
+    networks: [
+      { label: "TON",                   value: "TON" },
+    ],
+  },
+  {
+    id: "TRX",
+    name: "TRON",
+    symbol: "TRX",
+    networks: [
+      { label: "Tron",                  value: "Tron" },
+    ],
+  },
+  {
+    id: "XRP",
+    name: "XRP",
+    symbol: "XRP",
+    networks: [
+      { label: "XRP Ledger",            value: "XRP Ledger" },
+    ],
+  },
+  {
+    id: "LTC",
+    name: "Litecoin",
+    symbol: "LTC",
+    networks: [
+      { label: "Litecoin",              value: "Litecoin" },
+    ],
+  },
+  {
+    id: "DOGE",
+    name: "Dogecoin",
+    symbol: "DOGE",
+    networks: [
+      { label: "Dogecoin",              value: "Dogecoin" },
+    ],
   },
 ];
 
 export default function Step2Currency({ amount, onBack, onGenerate, isGenerating }: Step2Props) {
   const [selectedCrypto, setSelectedCrypto] = useState(CRYPTO_OPTIONS[0]);
-  const [selectedNetwork, setSelectedNetwork] = useState("");
-  
+  const [selectedNetwork, setSelectedNetwork] = useState<{ label: string; value: string } | null>(null);
+
   const [isCryptoOpen, setIsCryptoOpen] = useState(false);
   const [isNetworkOpen, setIsNetworkOpen] = useState(false);
 
@@ -61,6 +145,15 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-select network when a coin only has one option
+  useEffect(() => {
+    if (selectedCrypto.networks.length === 1) {
+      setSelectedNetwork(selectedCrypto.networks[0]);
+    } else {
+      setSelectedNetwork(null);
+    }
+  }, [selectedCrypto]);
+
   return (
     <div className="space-y-6 text-center animate-fadeIn">
       <div>
@@ -68,50 +161,61 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
         <p className="text-xs text-gray-400">Depositing ${amount.toFixed(2)}</p>
       </div>
 
-      {/* 1. Custom Cryptocurrency Dropdown */}
-      <div 
-        className={`text-left space-y-2 relative transition-all duration-100 ${isCryptoOpen ? "z-40" : "z-20"}`} 
+      {/* Cryptocurrency Dropdown */}
+      <div
+        className={`text-left space-y-2 relative transition-all duration-100 ${isCryptoOpen ? "z-40" : "z-20"}`}
         ref={cryptoRef}
       >
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Select Cryptocurrency</label>
-        
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+          Select Cryptocurrency
+        </label>
+
         <button
           type="button"
           onClick={() => { setIsCryptoOpen(!isCryptoOpen); setIsNetworkOpen(false); }}
           className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <img 
-              src={getCryptoLogo(selectedCrypto.symbol)} 
-              alt={selectedCrypto.name} 
+            <img
+              src={getCryptoLogo(selectedCrypto.symbol)}
+              alt={selectedCrypto.name}
               className="w-5 h-5 object-contain rounded-full"
-              onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/generic.png"; }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/generic.png";
+              }}
             />
             <span className="font-bold text-white">{selectedCrypto.symbol}</span>
             <span className="text-gray-500 text-xs font-medium">{selectedCrypto.name}</span>
           </div>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isCryptoOpen ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isCryptoOpen ? "rotate-180" : ""}`}
+          />
         </button>
 
         {isCryptoOpen && (
-          <div className="absolute left-0 right-0 mt-1.5 bg-[#0d0f17] border border-[#252b38] rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto scrollbar-none">
+          <div className="absolute left-0 right-0 mt-1.5 bg-[#0d0f17] border border-[#252b38] rounded-xl shadow-2xl z-[100] max-h-56 overflow-y-auto scrollbar-none">
             {CRYPTO_OPTIONS.map((crypto) => (
               <button
                 key={crypto.id}
                 type="button"
                 onClick={() => {
                   setSelectedCrypto(crypto);
-                  setSelectedNetwork(""); 
+                  setSelectedNetwork(null);
                   setIsCryptoOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-sm text-left flex items-center gap-3 hover:bg-[#1a1f28] transition-colors ${
                   selectedCrypto.id === crypto.id ? "bg-[#1a1f28]" : ""
                 }`}
               >
-                <img 
-                  src={getCryptoLogo(crypto.symbol)} 
-                  alt={crypto.name} 
+                <img
+                  src={getCryptoLogo(crypto.symbol)}
+                  alt={crypto.name}
                   className="w-5 h-5 object-contain rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/generic.png";
+                  }}
                 />
                 <div className="flex flex-col">
                   <span className="font-bold text-white text-xs">{crypto.symbol}</span>
@@ -123,39 +227,53 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
         )}
       </div>
 
-      {/* 2. Custom Network Dropdown */}
-      <div 
-        className={`text-left space-y-2 relative transition-all duration-100 ${isNetworkOpen ? "z-30" : "z-10"}`} 
+      {/* Network Dropdown */}
+      <div
+        className={`text-left space-y-2 relative transition-all duration-100 ${isNetworkOpen ? "z-30" : "z-10"}`}
         ref={networkRef}
       >
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Select Network</label>
-        
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+          Select Network
+        </label>
+
         <button
           type="button"
-          onClick={() => { setIsNetworkOpen(!isNetworkOpen); setIsCryptoOpen(false); }}
-          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
+          // Single-network coins: dropdown is cosmetic only, already auto-selected
+          onClick={() => {
+            if (selectedCrypto.networks.length > 1) {
+              setIsNetworkOpen(!isNetworkOpen);
+              setIsCryptoOpen(false);
+            }
+          }}
+          className={`w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors ${
+            selectedCrypto.networks.length === 1 ? "opacity-60 cursor-default" : ""
+          }`}
         >
           <span className={selectedNetwork ? "text-white font-medium" : "text-gray-500"}>
-            {selectedNetwork || "Select a network"}
+            {selectedNetwork ? selectedNetwork.label : "Select a network"}
           </span>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isNetworkOpen ? "rotate-180" : ""}`} />
+          {selectedCrypto.networks.length > 1 && (
+            <ChevronDown
+              className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isNetworkOpen ? "rotate-180" : ""}`}
+            />
+          )}
         </button>
 
-        {isNetworkOpen && (
+        {isNetworkOpen && selectedCrypto.networks.length > 1 && (
           <div className="absolute left-0 right-0 mt-1.5 bg-[#0d0f17] border border-[#252b38] rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto scrollbar-none">
             {selectedCrypto.networks.map((net) => (
               <button
-                key={net}
+                key={net.value}
                 type="button"
                 onClick={() => {
                   setSelectedNetwork(net);
                   setIsNetworkOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-sm text-left text-gray-300 hover:bg-[#1a1f28] hover:text-white transition-colors ${
-                  selectedNetwork === net ? "bg-[#1a1f28] text-white font-bold" : ""
+                  selectedNetwork?.value === net.value ? "bg-[#1a1f28] text-white font-bold" : ""
                 }`}
               >
-                {net}
+                {net.label}
               </button>
             ))}
           </div>
@@ -174,7 +292,7 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
         <button
           type="button"
           disabled={!selectedNetwork || isGenerating}
-          onClick={() => onGenerate(selectedCrypto.id, selectedNetwork)}
+          onClick={() => selectedNetwork && onGenerate(selectedCrypto.id, selectedNetwork.value)}
           className="w-2/3 bg-[#39ff88] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#5dffa1] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <QrCode className="h-4 w-4" />

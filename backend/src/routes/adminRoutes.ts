@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { AdminController } from '../controllers/adminController';
-import { authenticate } from '../middleware/auth';
-import { adminOnly, depositCreditLimiter } from '../middleware/adminOnly';
+import { AdminController } from '../controllers/adminController.js';
+import { authenticate } from '../middleware/auth.js';
+import { adminOnly, depositCreditLimiter } from '../middleware/adminOnly.js';
 
 const router = Router();
 

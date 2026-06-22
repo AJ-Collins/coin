@@ -141,6 +141,7 @@ enum Coin {
   USDT
   USDC
   BNB
+  MATIC
   XRP
   SOL
   TRX

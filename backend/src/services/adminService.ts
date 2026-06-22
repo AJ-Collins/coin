@@ -1,5 +1,5 @@
 import { Passkey } from "@prisma/client";
-import { prisma } from "../prisma";
+import { prisma } from "../prisma.js";
 import bcrypt from 'bcryptjs';
 
 export class AdminService {

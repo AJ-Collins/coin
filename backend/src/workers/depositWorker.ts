@@ -1,14 +1,15 @@
+import { Coin } from '@prisma/client';
 import { Worker, Job } from 'bullmq';
-import { redis } from '../lib/redis';
-import { prisma } from '../prisma';
-import { creditDeposit } from '../services/depositService';
-import { getUsdRate } from '../services/priceService';
+import { redis } from '../lib/redis.js';
+import { prisma } from '../prisma.js';
+import { creditDeposit } from '../services/depositService.js';
+import { getUsdRate } from '../services/priceService.js';
 import {
   NATIVE_COIN,
   STABLECOIN_CONTRACTS,
   SupportedNetwork,
-} from '../config/networks';
-import { DEPOSIT_QUEUE_NAME, DepositActivityJob } from '../queues/depositQueue';
+} from '../config/networks.js';
+import { DEPOSIT_QUEUE_NAME, DepositActivityJob } from '../queues/depositQueue.js';
 
 const MIN_CONFIRMATIONS: Record<SupportedNetwork, number> = {
   sepolia: 1,
@@ -16,6 +17,14 @@ const MIN_CONFIRMATIONS: Record<SupportedNetwork, number> = {
   bsc_testnet: 1,
   polygon_mainnet: 64,
   arbitrum_mainnet: 1,
+  btc_mainnet: 2,
+  btc_testnet: 2,
+  solana_mainnet: 30,
+  ton_mainnet: 3,
+  tron_mainnet: 20,
+  xrp_mainnet: 1,
+  ltc_mainnet: 3,
+  doge_mainnet: 3,
 };
 
 function resolveCoinForActivity(activity: any, network: SupportedNetwork) {
@@ -102,10 +111,11 @@ async function processActivity(job: Job<DepositActivityJob>) {
     `[DepositWorker] Deposit: ${value} ${resolved.coin} → user ${depositAddress.userId} | $${usdValue.toFixed(2)} | tx: ${txHash}`
   );
 
+  const coinType = resolved.coin as Coin;
   const deposit = await creditDeposit(
     txHash,
     depositAddress.userId,
-    resolved.coin,
+    coinType,
     internalNetwork,
     value,
     usdValue,

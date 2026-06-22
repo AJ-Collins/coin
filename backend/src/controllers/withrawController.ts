@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { WithdrawalService } from '../services/withdrawalService';
-import { fetchWithdrawalHistory } from '../services/withdrawalService';
+import { WithdrawalService } from '../services/withdrawalService.js';
+import { fetchWithdrawalHistory } from '../services/withdrawalService.js';
 
 export async function getWithdrawalHistory(req: Request, res: Response) {
   try {

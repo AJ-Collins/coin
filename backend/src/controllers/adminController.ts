@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { AdminService } from '../services/adminService';
-import { isValidUUID, validateTxHash, truncateString, clampPageAndLimit } from '../utils/validators';
+import { AdminService } from '../services/adminService.js';
+import { isValidUUID, validateTxHash, truncateString, clampPageAndLimit } from '../utils/validators.js';
 
 export class AdminController {
   static async generatePasskey(req: Request, res: Response) {

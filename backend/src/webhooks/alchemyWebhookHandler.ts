@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import crypto from 'crypto';
-import { RawBodyRequest } from '../middleware/rawBodyParser';
-import { ALCHEMY_NETWORK_MAP } from '../config/networks';
-import { enqueueDepositActivity } from '../queues/depositQueue';
+import { RawBodyRequest } from '../middleware/rawBodyParser.js';
+import { ALCHEMY_NETWORK_MAP } from '../config/networks.js';
+import { enqueueDepositActivity } from '../queues/depositQueue.js';
 
 const ALCHEMY_SIGNING_KEY = process.env.ALCHEMY_SIGNING_KEY!;
 

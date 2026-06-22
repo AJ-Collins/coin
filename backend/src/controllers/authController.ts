@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { AuthService } from '../services/authService';
-import { AuthRequest } from '../middleware/auth';
-import { validateEmail } from '../utils/validators';
+import { AuthService } from '../services/authService.js';
+import { AuthRequest } from '../middleware/auth.js';
+import { validateEmail } from '../utils/validators.js';
 
 export class AuthController {
   static async register(req: Request, res: Response) {

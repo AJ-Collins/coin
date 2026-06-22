@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { redis } from '../lib/redis';
+import { redis } from '../lib/redis.js';
 
 type PricedCoin = 'ETH' | 'BNB';
 

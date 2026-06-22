@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
-import { prisma } from '../prisma';
-import { creditDeposit } from '../services/depositService';
+import { prisma } from '../prisma.js';
+import { creditDeposit } from '../services/depositService.js';
 import { Coin } from '@prisma/client';
 
 const RPC_MAP: Record<string, string> = {

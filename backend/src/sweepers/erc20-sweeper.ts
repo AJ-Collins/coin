@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import * as bip39 from 'bip39';
-import { prisma } from '../prisma';
-import { markDepositSwept } from '../services/depositService';
+import { prisma } from '../prisma.js';
+import { markDepositSwept } from '../services/depositService.js';
 
 const RPC_MAP: Record<string, string | undefined> = {
   sepolia:          process.env.SEPOLIA_RPC,

@@ -1,4 +1,4 @@
-import { prisma } from '../prisma';
+import { prisma } from '../prisma.js';
 import { Prisma } from '@prisma/client';
 
 const MINIMUM_WITHDRAWAL = new Prisma.Decimal(500);

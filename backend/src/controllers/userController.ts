@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { UserService } from '../services/userService';
-import { WithdrawalService } from '../services/withdrawalService';
+import { UserService } from '../services/userService.js';
+import { WithdrawalService } from '../services/withdrawalService.js';
 import { AccountBalanceDTO } from '../types/auth.types';
 
 export class UserController {

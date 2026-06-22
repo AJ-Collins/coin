@@ -3,7 +3,7 @@ import {
   SupportedNetwork,
   NETWORK_WEBHOOK_MAP,
   isSupportedNetwork,
-} from '../config/networks';
+} from '../config/networks.js';
 
 const ALCHEMY_AUTH_TOKEN = process.env.ALCHEMY_AUTH_TOKEN!;
 

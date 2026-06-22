@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import ccxt from "ccxt";
-import { setProBotBroadcaster } from "./services/botEngineService";
+import { setProBotBroadcaster } from "./services/botEngineService.js";
 
 // Store connected clients grouped by the bot ID they are monitoring
 const botSubscribers = new Map<number, Set<WebSocket>>();

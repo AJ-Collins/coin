@@ -1,5 +1,5 @@
 import { ProBotStatus } from "@prisma/client";
-import { prisma } from "../prisma";
+import { prisma } from "../prisma.js";
 
 interface CreateBotInput {
   userId: string;

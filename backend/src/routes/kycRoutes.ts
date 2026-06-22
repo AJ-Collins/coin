@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
-import { adminOnly } from '../middleware/adminOnly';
-import { kycUpload } from '../middleware/upload';
-import { KYCController, AdminKYCController } from '../controllers/kycController';
+import { authenticate } from '../middleware/auth.js';
+import { adminOnly } from '../middleware/adminOnly.js';
+import { kycUpload } from '../middleware/upload.js';
+import { KYCController, AdminKYCController } from '../controllers/kycController.js';
 
 const router = Router();
 

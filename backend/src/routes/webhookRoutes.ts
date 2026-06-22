@@ -1,8 +1,8 @@
 // src/routes/webhooks.ts
 import { Router } from 'express';
 import express from 'express';
-import { handleAlchemyWebhook } from '../webhooks/alchemyWebhookHandler';
-import { RawBodyRequest } from '../middleware/rawBodyParser';
+import { handleAlchemyWebhook } from '../webhooks/alchemyWebhookHandler.js';
+import { RawBodyRequest } from '../middleware/rawBodyParser.js';
 
 const router = Router();
 

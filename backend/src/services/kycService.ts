@@ -1,5 +1,5 @@
-import { prisma } from '../prisma';
-import { deleteFile, deleteUserKYCDirectory } from '../utils/fileHandlers';
+import { prisma } from '../prisma.js';
+import { deleteFile, deleteUserKYCDirectory } from '../utils/fileHandlers.js';
 import { KYCStatus } from '@prisma/client';
 
 export class KYCService {

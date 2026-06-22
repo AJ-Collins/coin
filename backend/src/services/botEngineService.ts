@@ -1,6 +1,6 @@
 import { LogLevel } from "@prisma/client";
 
-import { prisma } from "../prisma";
+import { prisma } from "../prisma.js";
 
 interface RunningProBot {
   proBotId: number;

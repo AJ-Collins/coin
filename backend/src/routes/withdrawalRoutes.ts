@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
-import { getWithdrawalHistory, requestWithdrawal } from '../controllers/withrawController';
-import { KYCController } from '../controllers/kycController';
+import { authenticate } from '../middleware/auth.js';
+import { getWithdrawalHistory, requestWithdrawal } from '../controllers/withrawController.js';
+import { KYCController } from '../controllers/kycController.js';
 
 const router = Router();
 
