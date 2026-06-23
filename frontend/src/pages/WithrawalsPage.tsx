@@ -30,7 +30,7 @@ export default function WithdrawalsPage() {
     queryKey: ["kyc-status"],
     queryFn: async () => {
       const { data } = await api.get("/kyc/status");
-      setKycStatus(data.status);
+      setKycStatus(data.kycStatus);
       return data;
     },
   });
@@ -86,26 +86,7 @@ export default function WithdrawalsPage() {
   const primaryAccount = userProfile?.accounts?.[0];
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-white p-4 md:p-8 flex flex-col items-center justify-start space-y-6">
-      {toast?.show && (
-        <div
-          className={`w-full max-w-2xl rounded-xl p-4 border animate-slideDown ${
-            toast.type === "success"
-              ? "bg-[#0d1712] border-[#1a442b]"
-              : "bg-[#1a0d0d] border-[#441a1a]"
-          }`}
-        >
-          <h4
-            className={`text-sm font-bold ${
-              toast.type === "success" ? "text-[#39ff88]" : "text-red-400"
-            }`}
-          >
-            {toast.type === "success" ? "Withdrawal Submitted" : "Error"}
-          </h4>
-          <p className="text-xs text-gray-400 mt-0.5">{toast.message}</p>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-[#05070a] text-white p-4 md:p-8 flex flex-col items-center justify-start space-y-6">      
       <div className="w-full max-w-2xl space-y-6">
         <div className="flex items-center gap-3 px-1 py-2">
           <div>
@@ -130,7 +111,7 @@ export default function WithdrawalsPage() {
         </div>
 
         {/* KYC Verification — only appears once user tries to withdraw while unverified */}
-        {showKyc && kycStatus !== "VERIFIED" && (
+        {showKyc && kycStatus !== "VERIFIED" && kycStatus !== "NOT_REQUIRED" && (
           <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 shadow-xl animate-slideDown">
             <div className="flex items-start gap-3 mb-4">
               <div>
@@ -143,6 +124,25 @@ export default function WithdrawalsPage() {
               </div>
             </div>
             <KYCStatus onStatusChange={setKycStatus} />
+          </div>
+        )}
+
+        {toast?.show && (
+          <div
+            className={`w-full max-w-2xl rounded-xl p-4 border animate-slideDown ${
+              toast.type === "success"
+                ? "bg-[#0d1712] border-[#1a442b]"
+                : "bg-[#1a0d0d] border-[#441a1a]"
+            }`}
+          >
+            <h4
+              className={`text-sm font-bold ${
+                toast.type === "success" ? "text-[#39ff88]" : "text-red-400"
+              }`}
+            >
+              {toast.type === "success" ? "Withdrawal Submitted" : "Error"}
+            </h4>
+            <p className="text-xs text-gray-400 mt-0.5">{toast.message}</p>
           </div>
         )}
 

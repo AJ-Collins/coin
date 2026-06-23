@@ -31,10 +31,11 @@ services:
       - postgres
       - redis
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       JWT_SECRET: ${JWT_SECRET}
       MASTER_MNEMONIC: ${MASTER_MNEMONIC}
       HOT_WALLET_ADDRESS: ${HOT_WALLET_ADDRESS}

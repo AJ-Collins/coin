@@ -3,7 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import path from 'path';
+import helmet from 'helmet';
 import authRoutes from './routes/authRoutes.js';
+import marketerRoutes from './routes/marketerRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { botRoutes } from './routes/botRoutes.js';
@@ -17,17 +19,36 @@ import { syncExistingAddressesWithAlchemy } from './services/depositService.js';
 
 dotenv.config();
 const app = express();
+app.use(helmet());
 app.set('trust proxy', 1);
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+    
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
 const port = Number(process.env.PORT) || 5000;
 
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-  ],
-  methods: ["GET", "POST", "PUT", 'PATCH', "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", 'Cache-Control', 'Pragma', 'Expires'],
-  credentials: true
-}) as any);
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'],
+  credentials: true,
+}));
 
 // Webhook routes MUST be mounted before the global JSON parser, because
 // they need the raw request body for Alchemy's HMAC signature verification.
@@ -49,6 +70,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/marketer', marketerRoutes);
 app.use('/api/deposit', depositRoutes);
 app.use('/api/withdraw', withdrawalRoutes);
 app.use('/api/kyc', kycRoutes);

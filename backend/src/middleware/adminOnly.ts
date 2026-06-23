@@ -123,10 +123,10 @@ function createSlidingWindowLimiter(opts: SlidingWindowOptions) {
  */
 export const adminLimiter = createSlidingWindowLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 100, // higher limit for legitimate admins
   message: { error: 'Too many requests.' },
-  skip: (req) => !!req.user,
-})
+  keyGenerator: (req) => req.user?.id ?? req.ip ?? 'unknown',
+});
 
 /**
  * Auth (registration / password reset) – 3 req / 6 h per IP.

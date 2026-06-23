@@ -78,7 +78,8 @@ export default function NewWithdrawalForm({
     e.preventDefault();
     setFormError(null);
 
-    if (kycStatus !== "VERIFIED") {
+    // Single KYC gate — VERIFIED and NOT_REQUIRED both pass through
+    if (kycStatus !== "VERIFIED" && kycStatus !== "NOT_REQUIRED") {
       onKycRequired?.();
       return;
     }

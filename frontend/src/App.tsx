@@ -48,8 +48,8 @@ export default function App() {
             
 
             {/* Protected */}
-            {/* User-only */}
-            <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+            {/* User & Marketer */}
+            <Route element={<ProtectedRoute allowedRoles={["USER", "MARKETER"]} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/welcome" element={<DashboardPage />} />
                 <Route path="/trade" element={<BotsPage />} />
