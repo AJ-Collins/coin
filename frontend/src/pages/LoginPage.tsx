@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
 export default function LoginPage() {
@@ -116,12 +116,12 @@ export default function LoginPage() {
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[38px] text-[#4b5563] hover:text-[#f1f5f9]">
                 <EyeIcon isVisible={showPassword} />
               </button>
-              <a 
-                href="#" 
+              <Link 
+                to="/forgot-password"
                 className="text-[12px] text-[#4fd1c5] hover:text-white font-semibold flex justify-end mt-2.5 transition-colors duration-200"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Submit */}

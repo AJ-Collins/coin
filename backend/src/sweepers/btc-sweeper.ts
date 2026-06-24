@@ -6,6 +6,7 @@ import axios from 'axios';
 import { ECPairFactory } from 'ecpair';
 import { prisma } from '../prisma.js';
 import { markDepositSwept } from '../services/depositService.js';
+import { getConfig } from '../utils/configLoader.js';
 
 const bip32 = BIP32Factory(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -14,8 +15,6 @@ const NETWORK_CONFIG: Record<string, { btcNetwork: bitcoin.Network; api: string 
   btc_mainnet: { btcNetwork: bitcoin.networks.bitcoin, api: 'https://mempool.space/api' },
   btc_testnet: { btcNetwork: bitcoin.networks.testnet, api: 'https://mempool.space/testnet/api' },
 };
-
-const HOT_WALLET_BTC = process.env.HOT_WALLET_BTC_ADDRESS!;
 
 // Below this in satoshis after fees, the output is uneconomical to sweep
 const DUST_LIMIT_SATS = 546n;
@@ -27,8 +26,8 @@ interface UTXO {
   confirmed: boolean;
 }
 
-function deriveKeyPair(derivationPath: string, btcNetwork: bitcoin.Network) {
-  const seed = bip39.mnemonicToSeedSync(process.env.MASTER_MNEMONIC!);
+function deriveKeyPair(derivationPath: string, btcNetwork: bitcoin.Network, mnemonic: string) {
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
   const root = bip32.fromSeed(seed, btcNetwork);
   const child = root.derivePath(derivationPath);
 
@@ -73,8 +72,9 @@ function estimateVbytes(inputCount: number, outputCount = 1): number {
 }
 
 async function sweepBTC(network: string) {
+  const HOT_WALLET_BTC = await getConfig('HOT_WALLET_BTC_ADDRESS');
   if (!HOT_WALLET_BTC) {
-    console.log(`[btc-sweeper/${network}] HOT_WALLET_BTC_ADDRESS not set — skipping`);
+    console.log(`[btc-sweeper/${network}] HOT_WALLET_BTC_ADDRESS not configured — skipping`);
     return;
   }
 
@@ -113,7 +113,9 @@ async function sweepBTC(network: string) {
         continue;
       }
 
-      const keyPair = deriveKeyPair(derivationPath, btcNetwork);
+      const mnemonic = await getConfig('MASTER_MNEMONIC');
+      if (!mnemonic) throw new Error('MASTER_MNEMONIC not configured');
+      const keyPair = deriveKeyPair(derivationPath, btcNetwork, mnemonic);
       const psbt = new bitcoin.Psbt({ network: btcNetwork });
 
       // ── CRITICAL: P2WPKH inputs MUST use witnessUtxo, not nonWitnessUtxo ──

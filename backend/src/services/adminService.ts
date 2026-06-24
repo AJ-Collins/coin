@@ -1,6 +1,56 @@
 import { Passkey } from "@prisma/client";
 import { prisma } from "../prisma.js";
+import speakeasy from 'speakeasy';
 import bcrypt from 'bcryptjs';
+import { encrypt, decrypt } from '../utils/crypto.js';
+import { clearConfigCache } from '../utils/configLoader.js';
+
+
+// Canonical list of all configurable keys with metadata
+export const SYSTEM_CONFIG_DEFINITIONS = [
+  // EVM
+  { key: 'HOT_WALLET_ADDRESS',        label: 'EVM Hot Wallet Address',        group: 'EVM',      isSensitive: false },
+  { key: 'HOT_WALLET_PRIVATE_KEY',    label: 'EVM Hot Wallet Private Key',    group: 'EVM',      isSensitive: true  },
+  { key: 'SEPOLIA_RPC',               label: 'Sepolia RPC URL',               group: 'EVM',      isSensitive: false },
+  { key: 'ETH_MAINNET_RPC',           label: 'ETH Mainnet RPC URL',           group: 'EVM',      isSensitive: false },
+  { key: 'BSC_TESTNET_RPC',           label: 'BSC Testnet RPC URL',           group: 'EVM',      isSensitive: false },
+  { key: 'POLYGON_MAINNET_RPC',       label: 'Polygon Mainnet RPC URL',       group: 'EVM',      isSensitive: false },
+  { key: 'ARBITRUM_MAINNET_RPC',      label: 'Arbitrum Mainnet RPC URL',      group: 'EVM',      isSensitive: false },
+  // Token Contracts
+  { key: 'SEPOLIA_USDT_CONTRACT',     label: 'Sepolia USDT Contract',         group: 'CONTRACTS', isSensitive: false },
+  { key: 'SEPOLIA_USDC_CONTRACT',     label: 'Sepolia USDC Contract',         group: 'CONTRACTS', isSensitive: false },
+  { key: 'BSC_TESTNET_USDT_CONTRACT', label: 'BSC Testnet USDT Contract',     group: 'CONTRACTS', isSensitive: false },
+  { key: 'BSC_TESTNET_USDC_CONTRACT', label: 'BSC Testnet USDC Contract',     group: 'CONTRACTS', isSensitive: false },
+  { key: 'POLYGON_USDT_CONTRACT',     label: 'Polygon USDT Contract',         group: 'CONTRACTS', isSensitive: false },
+  { key: 'POLYGON_USDC_CONTRACT',     label: 'Polygon USDC Contract',         group: 'CONTRACTS', isSensitive: false },
+  { key: 'ARBITRUM_USDT_CONTRACT',    label: 'Arbitrum USDT Contract',        group: 'CONTRACTS', isSensitive: false },
+  { key: 'ARBITRUM_USDC_CONTRACT',    label: 'Arbitrum USDC Contract',        group: 'CONTRACTS', isSensitive: false },
+  // BTC
+  { key: 'HOT_WALLET_BTC_ADDRESS',    label: 'BTC Hot Wallet Address',        group: 'BTC',      isSensitive: false },
+  // SOL
+  { key: 'HELIUS_RPC_URL',            label: 'Helius RPC URL',                group: 'SOL',      isSensitive: false },
+  { key: 'HOT_WALLET_SOL_ADDRESS',    label: 'SOL Hot Wallet Address',        group: 'SOL',      isSensitive: false },
+  // TON
+  { key: 'TONCENTER_API_URL',         label: 'TONCenter API URL',             group: 'TON',      isSensitive: false },
+  { key: 'TONCENTER_API_KEY',         label: 'TONCenter API Key',             group: 'TON',      isSensitive: true  },
+  { key: 'HOT_WALLET_TON_ADDRESS',    label: 'TON Hot Wallet Address',        group: 'TON',      isSensitive: false },
+  // TRON
+  { key: 'TRON_RPC',                  label: 'Tron RPC URL',                  group: 'TRON',     isSensitive: false },
+  { key: 'TRONGRID_API_KEY',          label: 'TronGrid API Key',              group: 'TRON',     isSensitive: true  },
+  { key: 'HOT_WALLET_TRX_ADDRESS',    label: 'TRX Hot Wallet Address',        group: 'TRON',     isSensitive: false },
+  // HD Wallet
+  { key: 'MASTER_MNEMONIC',           label: 'Master Mnemonic (HD Wallet)',   group: 'HD_WALLET', isSensitive: true },
+  // Alchemy
+  { key: 'ALCHEMY_AUTH_TOKEN',        label: 'Alchemy Auth Token',            group: 'API_KEYS', isSensitive: true  },
+  { key: 'ALCHEMY_SIGNING_KEY',       label: 'Alchemy Signing Key',           group: 'API_KEYS', isSensitive: true  },
+  { key: 'ALCHEMY_WEBHOOK_SEPOLIA',   label: 'Alchemy Webhook — Sepolia',     group: 'API_KEYS', isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_ETH_MAINNET', label: 'Alchemy Webhook — ETH Mainnet', group: 'API_KEYS', isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_BSC_TESTNET', label: 'Alchemy Webhook — BSC Testnet', group: 'API_KEYS', isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_POLYGON',   label: 'Alchemy Webhook — Polygon',     group: 'API_KEYS', isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_ARBITRUM',  label: 'Alchemy Webhook — Arbitrum',    group: 'API_KEYS', isSensitive: false },
+] as const;
+
+export type SystemConfigKey = typeof SYSTEM_CONFIG_DEFINITIONS[number]['key'];
 
 export class AdminService {
   // Passkey
@@ -704,4 +754,88 @@ static async manualCreditDeposit(data: {
     usdValue: data.usdValue,
   };
 }
+
+// System settings configs
+static async getSystemConfigs() {
+    const rows = await prisma.systemConfig.findMany();
+    const rowMap = new Map(rows.map(r => [r.key, r]));
+
+    return SYSTEM_CONFIG_DEFINITIONS.map(def => {
+      const row = rowMap.get(def.key);
+      return {
+        key:         def.key,
+        label:       def.label,
+        group:       def.group,
+        isSensitive: def.isSensitive,
+        isSet:       !!row,
+        updatedAt:   row?.updatedAt ?? null,
+        // Never return actual value here — UI must call reveal endpoint
+      };
+    });
+  }
+
+  static async revealSystemConfig(key: string): Promise<string> {
+    const row = await prisma.systemConfig.findUnique({ where: { key } });
+    if (!row) {
+      // Fall back to process.env
+      return process.env[key] ?? '';
+    }
+    return row.isSensitive ? decrypt(row.value) : row.value;
+  }
+
+  static async upsertSystemConfig(key: string, value: string): Promise<void> {
+    const def = SYSTEM_CONFIG_DEFINITIONS.find(d => d.key === key);
+    if (!def) throw new Error(`Unknown config key: ${key}`);
+
+    const storedValue = def.isSensitive ? encrypt(value) : value;
+
+    await prisma.systemConfig.upsert({
+      where:  { key },
+      update: { value: storedValue, isSensitive: def.isSensitive, label: def.label, group: def.group },
+      create: { key, value: storedValue, isSensitive: def.isSensitive, label: def.label, group: def.group },
+    });
+
+    clearConfigCache(key);
+  }
+
+  static async upsertSystemConfigsBulk(entries: { key: string; value: string }[]): Promise<void> {
+    for (const entry of entries) {
+      await this.upsertSystemConfig(entry.key, entry.value);
+    }
+  }
+
+  static async setup2FA(userId: string) {
+    const secret = speakeasy.generateSecret({ name: 'AIScalpingPro Admin', length: 20 });
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorSecret: secret.base32 },
+    });
+
+    return {
+      secret: secret.base32,
+      otpauthUrl: secret.otpauth_url,
+    };
+  }
+
+  static async enable2FA(userId: string, totpCode: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.twoFactorSecret) {
+      throw new Error('Run /setup first');
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret:   user.twoFactorSecret,
+      encoding: 'base32',
+      token:    totpCode,
+      window:   1,
+    });
+
+    if (!valid) throw new Error('Invalid 2FA code');
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: true },
+    });
+  }
 }

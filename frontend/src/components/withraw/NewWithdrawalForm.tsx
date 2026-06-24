@@ -66,6 +66,7 @@ export default function NewWithdrawalForm({
   const parseAmount = parseFloat(amountInput) || 0;
   const currentNetworkFee = selectedNetwork ? selectedNetwork.fee : 0;
   const receiveAmount = parseAmount > currentNetworkFee ? parseAmount - currentNetworkFee : 0;
+  const minimumWithdrawal = 500; // Minimum withdrawal amount in USD
 
   // Form completeness — drives disabled state
   const isFormComplete =
@@ -92,8 +93,8 @@ export default function NewWithdrawalForm({
       setFormError("Please enter a withdrawal address.");
       return;
     }
-    if (parseAmount < 10) {
-      setFormError("Minimum withdrawal amount is $10.");
+    if (parseAmount < minimumWithdrawal) {
+      setFormError(`Minimum withdrawal amount is $${minimumWithdrawal.toFixed(2)}.`);
       return;
     }
     if (parseAmount > availableBalance) {
@@ -235,7 +236,7 @@ export default function NewWithdrawalForm({
             className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-8 pr-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all"
           />
         </div>
-        <p className="text-[11px] text-gray-500 pl-1">Minimum withdrawal: $10</p>
+        <p className="text-[11px] text-gray-500 pl-1">Minimum withdrawal: ${minimumWithdrawal.toFixed(2)}</p>
       </div>
 
       {/* Dynamic Processing Output Matrix */}

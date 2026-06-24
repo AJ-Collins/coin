@@ -44,4 +44,11 @@ router.patch("/profile/password", AdminController.updatePassword);
 
 router.post("/deposits/credit", depositCreditLimiter, AdminController.manualCreditDeposit);
 
+// System configs settings routes
+router.get("/system/settings",        AdminController.getSystemSettings);
+router.post("/system/settings/reveal", AdminController.revealSystemSetting);
+router.put("/system/settings",         AdminController.updateSystemSettings);
+router.post("/profile/2fa/setup",  AdminController.setup2FA);
+router.post("/profile/2fa/enable", AdminController.enable2FA);
+
 export default router;

@@ -4,25 +4,36 @@ import {
   NETWORK_WEBHOOK_MAP,
   isSupportedNetwork,
 } from '../config/networks.js';
-
-const ALCHEMY_AUTH_TOKEN = process.env.ALCHEMY_AUTH_TOKEN!;
+import { getConfig } from '../utils/configLoader.js';
 
 export function isEVMNetwork(network: string): network is SupportedNetwork {
   return isSupportedNetwork(network);
 }
 
-export async function registerAddressWithAlchemy(
-  address: string | string[],
-  network: string
-) {
-  if (!isSupportedNetwork(network)) {
-    console.warn(`[Alchemy] Network not supported: ${network} — skipping registration`);
+export async function registerAddressWithAlchemy(address: string | string[], network: string) {
+  const authToken = await getConfig('ALCHEMY_AUTH_TOKEN');
+  if (!authToken) {
+    console.warn(`[Alchemy] ALCHEMY_AUTH_TOKEN not configured — skipping registration`);
     return;
   }
 
-  const webhookId = NETWORK_WEBHOOK_MAP[network];
+  const webhookKeyMap: Record<string, string> = {
+    sepolia:          'ALCHEMY_WEBHOOK_SEPOLIA',
+    eth_mainnet:      'ALCHEMY_WEBHOOK_ETH_MAINNET',
+    bsc_testnet:      'ALCHEMY_WEBHOOK_BSC_TESTNET',
+    polygon_mainnet:  'ALCHEMY_WEBHOOK_POLYGON',
+    arbitrum_mainnet: 'ALCHEMY_WEBHOOK_ARBITRUM',
+  };
+
+  const webhookKey = webhookKeyMap[network];
+  if (!webhookKey) {
+    console.warn(`[Alchemy] No webhook key mapping for network: ${network}`);
+    return;
+  }
+
+  const webhookId = await getConfig(webhookKey);
   if (!webhookId) {
-    console.warn(`[Alchemy] No webhook ID configured for network: ${network} — skipping`);
+    console.warn(`[Alchemy] ${webhookKey} not configured — skipping`);
     return;
   }
 
@@ -38,7 +49,7 @@ export async function registerAddressWithAlchemy(
       },
       {
         headers: {
-          'X-Alchemy-Token': ALCHEMY_AUTH_TOKEN,
+          'X-Alchemy-Token': authToken,
           'Content-Type': 'application/json',
         },
       }

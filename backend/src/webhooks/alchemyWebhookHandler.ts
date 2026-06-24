@@ -3,22 +3,21 @@ import crypto from 'crypto';
 import { RawBodyRequest } from '../middleware/rawBodyParser.js';
 import { ALCHEMY_NETWORK_MAP } from '../config/networks.js';
 import { enqueueDepositActivity } from '../queues/depositQueue.js';
+import { getConfig } from '../utils/configLoader.js';
 
 const ALCHEMY_SIGNING_KEY = process.env.ALCHEMY_SIGNING_KEY!;
 
-function verifyAlchemySignature(req: RawBodyRequest): boolean {
+async function verifyAlchemySignature(req: RawBodyRequest): Promise<boolean> {
   const signature = req.headers['x-alchemy-signature'] as string | undefined;
-  if (!signature || !ALCHEMY_SIGNING_KEY) return false;
-  if (!req.rawBody) {
-    console.error('[Alchemy] No rawBody captured — check middleware wiring');
-    return false;
-  }
-  const hmac = crypto
-    .createHmac('sha256', ALCHEMY_SIGNING_KEY)
-    .update(req.rawBody)
-    .digest('hex');
+  if (!signature) return false;
 
-  const sigBuf = Buffer.from(signature, 'hex');
+  const signingKey = await getConfig('ALCHEMY_SIGNING_KEY');
+  if (!signingKey) return false;
+
+  if (!req.rawBody) return false;
+
+  const hmac = crypto.createHmac('sha256', signingKey).update(req.rawBody).digest('hex');
+  const sigBuf  = Buffer.from(signature, 'hex');
   const hmacBuf = Buffer.from(hmac, 'hex');
   if (sigBuf.length !== hmacBuf.length) return false;
   return crypto.timingSafeEqual(sigBuf, hmacBuf);

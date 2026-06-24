@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { RegisterInput, LoginInput, AuthResponse, UserDTO } from '../types/auth.types';
+import { EmailService } from './emailService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -139,9 +140,18 @@ export class AuthService {
       },
     });
 
-    // TODO: Send password reset email via EmailService
-    // For now, admins must retrieve token from database if needed
-    // In production, use email sending service (SendGrid, AWS SES, etc.)
+    // Send password reset email via EmailService
+    const frontendUrl = process.env.FRONTEND_URL;
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Dispatch the email via EmailService
+    try {
+      await EmailService.sendPasswordResetEmail(user, resetLink);
+    } catch (emailError) {
+      // Log the error but don't crash the request context if it's a non-fatal mail block
+      console.error(`[AuthService] Failed to dispatch recovery email to ${email}:`, emailError);
+      // Optional: throw emailError if you want to explicitly return a 500 error to the client
+    }
 
     return { message: 'PASSWORD_RESET_EMAIL_SENT' };
   }

@@ -66,6 +66,7 @@ app.get('/', (req, res) => {
 });
 
 // Routes
+app.get('/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/bot', botRoutes);

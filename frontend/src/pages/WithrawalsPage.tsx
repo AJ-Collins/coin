@@ -4,7 +4,7 @@ import NewWithdrawalForm from "../components/withraw/NewWithdrawalForm";
 import WithdrawalHistory from "../components/withraw/WithdrawalHistory";
 import KYCStatus from "../components/withraw/KYCStatus";
 import type { Transaction, KYCStatus as KYCStatusType } from "../types/index";
-import { History, AlertCircle } from "lucide-react";
+import { History } from "lucide-react";
 import api from "../lib/api";
 
 export default function WithdrawalsPage() {

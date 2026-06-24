@@ -2,23 +2,28 @@ import { TronWeb } from 'tronweb';
 import * as bip39 from 'bip39';
 import { ethers } from 'ethers';
 import { prisma } from '../prisma.js';
+import { getConfig } from '../utils/configLoader.js';
 import { markDepositSwept } from '../services/depositService.js';
 
-const HOT_WALLET_TRX = process.env.HOT_WALLET_TRX_ADDRESS!;
-const MIN_SWEEP_TRX  = parseFloat(process.env.MIN_SWEEP_TRX || '10');
 // TRX transfers cost bandwidth. If the account has free bandwidth this is 0 TRX;
 // worst case it's ~0.3–1 TRX. Reserve 2 TRX to be safe.
-const TX_FEE_SUN     = 2_000_000; // 2 TRX in sun
+const TX_FEE_SUN = 2_000_000; // 2 TRX in sun
 
-function getPrivateKey(derivationPath: string): string {
-  const seed = bip39.mnemonicToSeedSync(process.env.MASTER_MNEMONIC!);
+function getPrivateKey(derivationPath: string, mnemonic: string): string {
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
   const node = ethers.utils.HDNode.fromSeed(seed).derivePath(derivationPath);
   return node.privateKey.slice(2); // TronWeb wants raw hex without 0x prefix
 }
 
 async function sweepTRX() {
-  if (!HOT_WALLET_TRX) {
-    console.log('[trx-sweeper] HOT_WALLET_TRX_ADDRESS not set — skipping');
+  const HOT_WALLET_TRX = await getConfig('HOT_WALLET_TRX_ADDRESS');
+  const MIN_SWEEP_TRX  = parseFloat(await getConfig('MIN_SWEEP_TRX') ?? '10');
+  const tronRpc        = await getConfig('TRON_RPC') ?? 'https://api.trongrid.io';
+  const trongridKey    = await getConfig('TRONGRID_API_KEY');
+  const mnemonic       = await getConfig('MASTER_MNEMONIC');
+
+  if (!HOT_WALLET_TRX || !mnemonic) {
+    console.log('[trx-sweeper] Missing TRX wallet config — skipping');
     return;
   }
 
@@ -30,15 +35,20 @@ async function sweepTRX() {
   if (pending.length === 0) return;
   console.log(`[trx-sweeper] ${pending.length} deposit(s) to sweep`);
 
+  // Build header once per sweep run — avoids re-reading config on every iteration
+  const headers = trongridKey ? { 'TRON-PRO-API-KEY': trongridKey } : {};
+
   for (const deposit of pending) {
     try {
       const { address, derivationPath } = deposit.depositAddress;
-      const privateKey = getPrivateKey(derivationPath);
+
+      // mnemonic now passed in — no longer reads process.env
+      const privateKey = getPrivateKey(derivationPath, mnemonic);
 
       const tronWeb = new TronWeb({
-        fullHost:   process.env.TRON_RPC || 'https://api.trongrid.io',
+        fullHost:   tronRpc,
         privateKey,
-        headers: TRONGRID_KEY_HEADER(),
+        headers,
       });
 
       const balanceSun: number = await tronWeb.trx.getBalance(address);
@@ -60,25 +70,21 @@ async function sweepTRX() {
 
       await markDepositSwept(deposit.id, result.txid);
       console.log(`  ✅ TRX swept: ${sendTRX.toFixed(2)} TRX → ${HOT_WALLET_TRX} | txid: ${result.txid}`);
-
     } catch (err: any) {
       console.error(`  ✗ TRX sweep failed for deposit ${deposit.id}:`, err.message);
     }
   }
 }
 
-function TRONGRID_KEY_HEADER(): Record<string, string> {
-  return process.env.TRONGRID_API_KEY
-    ? { 'TRON-PRO-API-KEY': process.env.TRONGRID_API_KEY }
-    : {};
-}
-
 export function startTronSweeper(intervalMs = 120_000) {
   console.log('🧹 TRX Sweeper started');
 
   const run = async () => {
-    try { await sweepTRX(); }
-    catch (err: any) { console.error('[trx-sweeper]', err.message); }
+    try {
+      await sweepTRX();
+    } catch (err: any) {
+      console.error('[trx-sweeper]', err.message);
+    }
   };
 
   run();

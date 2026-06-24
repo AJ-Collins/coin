@@ -9,6 +9,8 @@ import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import PageNotFound from "./pages/PageNotFound";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // User
 import DashboardLayout from "./components/dashboard/Layout";
@@ -45,7 +47,8 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegistrationPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected */}
             {/* User & Marketer */}

@@ -333,3 +333,12 @@ model Trade {
   endTime    DateTime?
   createdAt  DateTime    @default(now())
 }
+
+model SystemConfig {
+  key         String   @id   // e.g. "HOT_WALLET_ADDRESS", "MASTER_MNEMONIC"
+  value       String         // AES-encrypted if isSensitive=true
+  isSensitive Boolean  @default(false)
+  label       String?        // Human-readable label for the admin UI
+  group       String?        // e.g. "EVM", "BTC", "SOL", "TRON", "TON", "API_KEYS"
+  updatedAt   DateTime @updatedAt
+}

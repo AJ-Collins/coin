@@ -1,28 +1,21 @@
 import { ethers } from 'ethers';
 import * as bip39 from 'bip39';
 import { prisma } from '../prisma.js';
+import { getConfig } from '../utils/configLoader.js';
 import { markDepositSwept } from '../services/depositService.js';
-
-const RPC_MAP: Record<string, string | undefined> = {
-  sepolia:          process.env.SEPOLIA_RPC,
-  eth_mainnet:      process.env.ETH_MAINNET_RPC,
-  bsc_testnet:      process.env.BSC_TESTNET_RPC,
-  polygon_mainnet:  process.env.POLYGON_MAINNET_RPC,
-  arbitrum_mainnet: process.env.ARBITRUM_MAINNET_RPC,
-};
-
-const HOT_WALLET = process.env.HOT_WALLET_ADDRESS
-  ? ethers.utils.getAddress(process.env.HOT_WALLET_ADDRESS)
-  : null;
 
 const MIN_SWEEP = parseFloat(process.env.MIN_SWEEP_ETH || '0.001');
 
-function getPrivateKeyForPath(derivationPath: string) {
-  const seed = bip39.mnemonicToSeedSync(process.env.MASTER_MNEMONIC!);
+function getPrivateKeyForPath(derivationPath: string, mnemonic: string): string {
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
   return ethers.utils.HDNode.fromSeed(seed).derivePath(derivationPath).privateKey;
 }
 
-function scheduleConfirmationCheck(txHash: string, depositId: string, provider: ethers.providers.JsonRpcProvider) {
+function scheduleConfirmationCheck(
+  txHash: string,
+  depositId: string,
+  provider: ethers.providers.JsonRpcProvider
+) {
   const interval = setInterval(async () => {
     try {
       const receipt = await provider.getTransactionReceipt(txHash);
@@ -42,10 +35,12 @@ function scheduleConfirmationCheck(txHash: string, depositId: string, provider: 
 
 async function sweepSingleDeposit(
   deposit: { id: string; address: string; derivationPath: string },
-  provider: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.JsonRpcProvider,
+  HOT_WALLET: string,
+  mnemonic: string
 ) {
-  const privateKey = getPrivateKeyForPath(deposit.derivationPath);
-  const wallet = new ethers.Wallet(privateKey, provider);
+  const privateKey = getPrivateKeyForPath(deposit.derivationPath, mnemonic);
+  const wallet     = new ethers.Wallet(privateKey, provider);
   const balanceWei = await provider.getBalance(deposit.address);
   const balanceETH = parseFloat(ethers.utils.formatEther(balanceWei));
 
@@ -54,9 +49,9 @@ async function sweepSingleDeposit(
     return;
   }
 
-  const gasPrice = await provider.getGasPrice();
-  const gasLimit = ethers.BigNumber.from(21000);
-  const gasCost = gasPrice.mul(gasLimit);
+  const gasPrice  = await provider.getGasPrice();
+  const gasLimit  = ethers.BigNumber.from(21_000);
+  const gasCost   = gasPrice.mul(gasLimit);
   const sendAmount = balanceWei.sub(gasCost);
 
   if (sendAmount.lte(0)) {
@@ -67,7 +62,7 @@ async function sweepSingleDeposit(
   console.log(`  ↳ Sweeping ${ethers.utils.formatEther(sendAmount)} ETH → ${HOT_WALLET}`);
 
   const tx = await wallet.sendTransaction({
-    to: HOT_WALLET!,
+    to: HOT_WALLET,
     value: sendAmount,
     gasLimit,
     gasPrice,
@@ -78,7 +73,9 @@ async function sweepSingleDeposit(
   try {
     const receipt = await Promise.race([
       tx.wait(1),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('wait timeout')), 60_000)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('wait timeout')), 60_000)
+      ),
     ]);
 
     if (receipt && (receipt as ethers.providers.TransactionReceipt).status === 1) {
@@ -87,32 +84,48 @@ async function sweepSingleDeposit(
     } else {
       console.log(`  ⚠ Tx may have failed — check: ${tx.hash}`);
     }
-  } catch (err) {
+  } catch {
     console.log(`  ⏳ Confirmation timeout for ${tx.hash} — polling until confirmed`);
     scheduleConfirmationCheck(tx.hash, deposit.id, provider);
   }
 }
 
 async function sweepEVM(network: string) {
-  if (!HOT_WALLET) {
-    console.log(`[sweeper/${network}] HOT_WALLET_ADDRESS not set — skipping`);
+  const hotWalletRaw = await getConfig('HOT_WALLET_ADDRESS');
+  if (!hotWalletRaw) {
+    console.log(`[sweeper/${network}] HOT_WALLET_ADDRESS not configured — skipping`);
     return;
   }
-  const rpcUrl = RPC_MAP[network];
+
+  const mnemonic = await getConfig('MASTER_MNEMONIC');
+  if (!mnemonic) {
+    console.log(`[sweeper/${network}] MASTER_MNEMONIC not configured — skipping`);
+    return;
+  }
+
+  const rpcMap: Record<string, string | null> = {
+    sepolia:          await getConfig('SEPOLIA_RPC'),
+    eth_mainnet:      await getConfig('ETH_MAINNET_RPC'),
+    bsc_testnet:      await getConfig('BSC_TESTNET_RPC'),
+    polygon_mainnet:  await getConfig('POLYGON_MAINNET_RPC'),
+    arbitrum_mainnet: await getConfig('ARBITRUM_MAINNET_RPC'),
+  };
+
+  const rpcUrl = rpcMap[network];
   if (!rpcUrl) {
     console.log(`[sweeper/${network}] No RPC configured — skipping`);
     return;
   }
 
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  const HOT_WALLET = ethers.utils.getAddress(hotWalletRaw);
+  const provider   = new ethers.providers.JsonRpcProvider(rpcUrl);
 
-  // Only native-coin deposits (ETH/BNB) — ERC20 tokens are handled separately
   const pending = await prisma.deposit.findMany({
     where: {
       network,
-      status: 'CREDITED',
+      status:  'CREDITED',
       sweptTx: null,
-      coin: { in: ['ETH', 'BNB', 'MATIC'] },
+      coin:    { in: ['ETH', 'BNB', 'MATIC'] },
     },
     include: { depositAddress: { select: { address: true, derivationPath: true } } },
   });
@@ -128,11 +141,13 @@ async function sweepEVM(network: string) {
     try {
       await sweepSingleDeposit(
         {
-          id: deposit.id,
-          address: deposit.depositAddress.address,
+          id:             deposit.id,
+          address:        deposit.depositAddress.address,
           derivationPath: deposit.depositAddress.derivationPath,
         },
-        provider
+        provider,
+        HOT_WALLET,
+        mnemonic
       );
     } catch (err: any) {
       console.error(`  ✗ Sweep failed for deposit ${deposit.id}:`, err.message);

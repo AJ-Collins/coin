@@ -11,6 +11,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -21,6 +27,11 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build: .
@@ -28,35 +39,35 @@ services:
     container_name: aiscalping_api
     restart: always
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       JWT_SECRET: ${JWT_SECRET}
-      MASTER_MNEMONIC: ${MASTER_MNEMONIC}
-      HOT_WALLET_ADDRESS: ${HOT_WALLET_ADDRESS}
       ALCHEMY_AUTH_TOKEN: ${ALCHEMY_AUTH_TOKEN}
-      ALCHEMY_SIGNING_KEY: ${ALCHEMY_SIGNING_KEY}
-      SEPOLIA_RPC: ${SEPOLIA_RPC}
-      ETH_MAINNET_RPC: ${ETH_MAINNET_RPC}
-      BSC_TESTNET_RPC: ${BSC_TESTNET_RPC}
-      POLYGON_MAINNET_RPC: ${POLYGON_MAINNET_RPC}
-      ARBITRUM_MAINNET_RPC: ${ARBITRUM_MAINNET_RPC}
-      SEPOLIA_USDT_CONTRACT: ${SEPOLIA_USDT_CONTRACT}
-      SEPOLIA_USDC_CONTRACT: ${SEPOLIA_USDC_CONTRACT}
-      BSC_TESTNET_USDT_CONTRACT: ${BSC_TESTNET_USDT_CONTRACT}
-      BSC_TESTNET_USDC_CONTRACT: ${BSC_TESTNET_USDC_CONTRACT}
-      POLYGON_USDT_CONTRACT: ${POLYGON_USDT_CONTRACT}
-      POLYGON_USDC_CONTRACT: ${POLYGON_USDC_CONTRACT}
-      ARBITRUM_USDT_CONTRACT: ${ARBITRUM_USDT_CONTRACT}
-      ARBITRUM_USDC_CONTRACT: ${ARBITRUM_USDC_CONTRACT}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      APP_NAME: ${APP_NAME}
+      FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "5000:5000"
-    command: node dist/server.js
+    command: sh -c "npx prisma migrate deploy && node dist/server.js"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:5000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   deposit-worker:
     build: .
@@ -64,17 +75,20 @@ services:
     container_name: aiscalping_deposit_worker
     restart: always
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DEPOSIT_WORKER_CONCURRENCY: 10
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
+      DEPOSIT_WORKER_CONCURRENCY: ${DEPOSIT_WORKER_CONCURRENCY:-10}
     command: node dist/workers/index.js
-    # Scale this independently of `api` if deposit volume grows:
-    #   docker compose up -d --scale deposit-worker=3
 
   sweeper-worker:
     build: .
@@ -82,47 +96,18 @@ services:
     container_name: aiscalping_sweeper
     restart: always
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      MASTER_MNEMONIC: ${MASTER_MNEMONIC}
-      HOT_WALLET_ADDRESS: ${HOT_WALLET_ADDRESS}
-      HOT_WALLET_PRIVATE_KEY: ${HOT_WALLET_PRIVATE_KEY}
-      MIN_SWEEP_ETH: ${MIN_SWEEP_ETH:-0.001}
-      SEPOLIA_RPC: ${SEPOLIA_RPC}
-      ETH_MAINNET_RPC: ${ETH_MAINNET_RPC}
-      BSC_TESTNET_RPC: ${BSC_TESTNET_RPC}
-      POLYGON_MAINNET_RPC: ${POLYGON_MAINNET_RPC}
-      ARBITRUM_MAINNET_RPC: ${ARBITRUM_MAINNET_RPC}
-      SEPOLIA_USDT_CONTRACT: ${SEPOLIA_USDT_CONTRACT}
-      SEPOLIA_USDC_CONTRACT: ${SEPOLIA_USDC_CONTRACT}
-      BSC_TESTNET_USDT_CONTRACT: ${BSC_TESTNET_USDT_CONTRACT}
-      BSC_TESTNET_USDC_CONTRACT: ${BSC_TESTNET_USDC_CONTRACT}
-      POLYGON_USDT_CONTRACT: ${POLYGON_USDT_CONTRACT}
-      POLYGON_USDC_CONTRACT: ${POLYGON_USDC_CONTRACT}
-      ARBITRUM_USDT_CONTRACT: ${ARBITRUM_USDT_CONTRACT}
-      ARBITRUM_USDC_CONTRACT: ${ARBITRUM_USDC_CONTRACT}
-      # BTC
-      HOT_WALLET_BTC_ADDRESS: ${HOT_WALLET_BTC_ADDRESS}
-      # Solana
-      HELIUS_RPC_URL: ${HELIUS_RPC_URL}
-      HOT_WALLET_SOL_ADDRESS: ${HOT_WALLET_SOL_ADDRESS}
-      MIN_SWEEP_SOL: ${MIN_SWEEP_SOL:-0.005}
-      # TON
-      TONCENTER_API_URL: ${TONCENTER_API_URL}
-      TONCENTER_API_KEY: ${TONCENTER_API_KEY}
-      HOT_WALLET_TON_ADDRESS: ${HOT_WALLET_TON_ADDRESS}
-      MIN_SWEEP_TON: ${MIN_SWEEP_TON:-0.05}
-      # Tron
-      TRON_RPC: ${TRON_RPC}
-      TRONGRID_API_KEY: ${TRONGRID_API_KEY}
-      HOT_WALLET_TRX_ADDRESS: ${HOT_WALLET_TRX_ADDRESS}
-      MIN_SWEEP_TRX: ${MIN_SWEEP_TRX:-10}
-      SWEEP_INTERVAL_MS: 120000
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/sweeperIndex.js
 
   listener-worker:
@@ -131,22 +116,18 @@ services:
     container_name: aiscalping_listener
     restart: always
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      MASTER_MNEMONIC: ${MASTER_MNEMONIC}
-      # Solana
-      HELIUS_RPC_URL: ${HELIUS_RPC_URL}
-      # TON
-      TONCENTER_API_URL: ${TONCENTER_API_URL}
-      TONCENTER_API_KEY: ${TONCENTER_API_KEY}
-      # Tron
-      TRON_RPC: ${TRON_RPC}
-      TRONGRID_API_KEY: ${TRONGRID_API_KEY}
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/listenerIndex.js
 
 volumes:

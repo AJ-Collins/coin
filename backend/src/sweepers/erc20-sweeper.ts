@@ -1,19 +1,8 @@
 import { ethers } from 'ethers';
 import * as bip39 from 'bip39';
 import { prisma } from '../prisma.js';
+import { getConfig } from '../utils/configLoader.js';
 import { markDepositSwept } from '../services/depositService.js';
-
-const RPC_MAP: Record<string, string | undefined> = {
-  sepolia:          process.env.SEPOLIA_RPC,
-  eth_mainnet:      process.env.ETH_MAINNET_RPC,
-  bsc_testnet:      process.env.BSC_TESTNET_RPC,
-  polygon_mainnet:  process.env.POLYGON_MAINNET_RPC,
-  arbitrum_mainnet: process.env.ARBITRUM_MAINNET_RPC,
-};
-
-const HOT_WALLET = process.env.HOT_WALLET_ADDRESS
-  ? ethers.utils.getAddress(process.env.HOT_WALLET_ADDRESS)
-  : null;
 
 const ERC20_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
@@ -21,52 +10,68 @@ const ERC20_ABI = [
   'function decimals() view returns (uint8)',
 ];
 
-// Fill in real token contract addresses per network/coin
-const TOKEN_CONTRACTS: Record<string, Record<string, string>> = {
-  sepolia: {
-    USDT: process.env.SEPOLIA_USDT_CONTRACT || '',
-    USDC: process.env.SEPOLIA_USDC_CONTRACT || '',
-  },
-  bsc_testnet: {
-    USDT: process.env.BSC_TESTNET_USDT_CONTRACT || '',
-    USDC: process.env.BSC_TESTNET_USDC_CONTRACT || '',
-  },
-  polygon_mainnet: {
-    USDT: process.env.POLYGON_USDT_CONTRACT || '',
-    USDC: process.env.POLYGON_USDC_CONTRACT || '',
-  },
-  arbitrum_mainnet: {
-    USDT: process.env.ARBITRUM_USDT_CONTRACT || '',
-    USDC: process.env.ARBITRUM_USDC_CONTRACT || '',
-  },
-};
-
-function getPrivateKeyForPath(derivationPath: string) {
-  const seed = bip39.mnemonicToSeedSync(process.env.MASTER_MNEMONIC!);
+function getPrivateKeyForPath(derivationPath: string, mnemonic: string): string {
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
   return ethers.utils.HDNode.fromSeed(seed).derivePath(derivationPath).privateKey;
 }
 
 async function sweepERC20(network: string, coin: string) {
-  if (!HOT_WALLET) {
-    console.log(`[sweeper/${network}/${coin}] HOT_WALLET_ADDRESS not set — skipping`);
+  // ── Fetch all required config from DB (with .env fallback) ──────────────
+  const hotWalletRaw = await getConfig('HOT_WALLET_ADDRESS');
+  const hotWalletPK  = await getConfig('HOT_WALLET_PRIVATE_KEY');
+  const mnemonic     = await getConfig('MASTER_MNEMONIC');
+
+  if (!hotWalletRaw || !hotWalletPK || !mnemonic) {
+    console.log(`[sweeper/${network}/${coin}] Missing wallet config — skipping`);
     return;
   }
-  const hotWalletPK = process.env.HOT_WALLET_PRIVATE_KEY;
-  if (!hotWalletPK) {
-    console.log(`[sweeper/${network}/${coin}] HOT_WALLET_PRIVATE_KEY not set — skipping`);
+
+  const rpcMap: Record<string, string | null> = {
+    sepolia:          await getConfig('SEPOLIA_RPC'),
+    bsc_testnet:      await getConfig('BSC_TESTNET_RPC'),
+    polygon_mainnet:  await getConfig('POLYGON_MAINNET_RPC'),
+    arbitrum_mainnet: await getConfig('ARBITRUM_MAINNET_RPC'),
+  };
+
+  const contractMap: Record<string, Record<string, string | null>> = {
+    sepolia: {
+      USDT: await getConfig('SEPOLIA_USDT_CONTRACT'),
+      USDC: await getConfig('SEPOLIA_USDC_CONTRACT'),
+    },
+    bsc_testnet: {
+      USDT: await getConfig('BSC_TESTNET_USDT_CONTRACT'),
+      USDC: await getConfig('BSC_TESTNET_USDC_CONTRACT'),
+    },
+    polygon_mainnet: {
+      USDT: await getConfig('POLYGON_USDT_CONTRACT'),
+      USDC: await getConfig('POLYGON_USDC_CONTRACT'),
+    },
+    arbitrum_mainnet: {
+      USDT: await getConfig('ARBITRUM_USDT_CONTRACT'),
+      USDC: await getConfig('ARBITRUM_USDC_CONTRACT'),
+    },
+  };
+
+  // ── Validate network + coin are configured ───────────────────────────────
+  const rpcUrl = rpcMap[network];
+  if (!rpcUrl) {
+    console.log(`[sweeper/${network}/${coin}] No RPC configured — skipping`);
     return;
   }
 
-  const contractAddress = TOKEN_CONTRACTS[network]?.[coin];
-  if (!contractAddress) return;
+  const contractAddress = contractMap[network]?.[coin];
+  if (!contractAddress) {
+    console.log(`[sweeper/${network}/${coin}] No contract address configured — skipping`);
+    return;
+  }
 
-  const rpcUrl = RPC_MAP[network];
-  if (!rpcUrl) return;
-
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  // ── Setup provider + contracts ────────────────────────────────────────────
+  const HOT_WALLET    = ethers.utils.getAddress(hotWalletRaw);
+  const provider      = new ethers.providers.JsonRpcProvider(rpcUrl);
   const tokenContract = new ethers.Contract(contractAddress, ERC20_ABI, provider);
-  const decimals = await tokenContract.decimals();
+  const decimals: number = await tokenContract.decimals();
 
+  // ── Find pending deposits to sweep ───────────────────────────────────────
   const pending = await prisma.deposit.findMany({
     where: { network, coin: coin as any, status: 'CREDITED', sweptTx: null },
     include: { depositAddress: { select: { address: true, derivationPath: true } } },
@@ -75,37 +80,44 @@ async function sweepERC20(network: string, coin: string) {
   if (pending.length === 0) return;
   console.log(`[sweeper/${network}/${coin}] ${pending.length} token sweep(s) pending`);
 
+  // gasWallet funds each deposit address with ETH to cover the transfer gas
   const gasWallet = new ethers.Wallet(hotWalletPK, provider);
 
   for (const deposit of pending) {
     try {
-      const address = deposit.depositAddress.address;
+      const { address, derivationPath } = deposit.depositAddress;
+
       const tokenBalance = await tokenContract.balanceOf(address);
-      if (tokenBalance.eq(0)) continue;
+      if (tokenBalance.eq(0)) {
+        console.log(`  ↳ ${address} — zero token balance, skipping`);
+        continue;
+      }
 
       const humanAmount = parseFloat(ethers.utils.formatUnits(tokenBalance, decimals));
       console.log(`  ↳ Sweeping ${humanAmount} ${coin} from ${address}`);
 
-      const gasPrice = await provider.getGasPrice();
-      const gasNeeded = gasPrice.mul(65000);
+      // Fund the deposit address with just enough ETH to pay for the transfer
+      const gasPrice  = await provider.getGasPrice();
+      const gasNeeded = gasPrice.mul(65_000);
 
       const fundTx = await gasWallet.sendTransaction({ to: address, value: gasNeeded });
       await fundTx.wait(1);
 
-      const depositWallet = new ethers.Wallet(getPrivateKeyForPath(deposit.depositAddress.derivationPath), provider);
-      const tokenWithSigner = tokenContract.connect(depositWallet);
+      // Now send the tokens from the deposit address to the hot wallet
+      const depositPrivateKey = getPrivateKeyForPath(derivationPath, mnemonic);
+      const depositWallet     = new ethers.Wallet(depositPrivateKey, provider);
+      const tokenWithSigner   = tokenContract.connect(depositWallet);
 
       const transferTx = await tokenWithSigner.transfer(HOT_WALLET, tokenBalance, {
-        gasLimit: 65000,
+        gasLimit: 65_000,
         gasPrice,
       });
       await transferTx.wait(1);
 
       await markDepositSwept(deposit.id, transferTx.hash);
-
       console.log(`  ✅ Token sweep complete: ${transferTx.hash}`);
     } catch (err: any) {
-      console.error(`  ✗ Token sweep failed ${deposit.id}:`, err.message);
+      console.error(`  ✗ Token sweep failed for deposit ${deposit.id}:`, err.message);
     }
   }
 }

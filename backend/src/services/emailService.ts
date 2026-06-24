@@ -14,6 +14,10 @@ export class EmailService {
     },
   });
 
+  private static isSmtpConfigured(): boolean {
+    return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  }
+
   static async sendReferrerWithdrawalAlert(user: any, amount: number, network: string, toAddress: string) {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.warn('SMTP credentials not configured. Skipping email notification.');

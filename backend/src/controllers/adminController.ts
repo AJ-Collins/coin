@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import speakeasy from 'speakeasy';
+import { prisma } from "../prisma.js";
 import { AdminService } from '../services/adminService.js';
 import { isValidUUID, validateTxHash, truncateString, clampPageAndLimit } from '../utils/validators.js';
 
@@ -329,6 +331,116 @@ static async updateWithdrawalStatus(req: Request, res: Response) {
     } catch (err: any) {
       console.error('manualCreditDeposit error:', err);
       return res.status(400).json({ error: err.message || 'Failed to credit deposit' });
+    }
+  }
+
+  // System settings configs
+  /**
+   * GET /admin/system/settings
+   * Returns all config keys with metadata but NO actual values.
+   */
+  static async getSystemSettings(req: Request, res: Response) {
+    try {
+      const settings = await AdminService.getSystemConfigs();
+      res.json(settings);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  /**
+   * POST /admin/system/settings/reveal
+   * Body: { key: string, totpCode: string }
+   * Returns the plaintext value of a single config key, after 2FA check.
+   */
+  static async revealSystemSetting(req: Request, res: Response) {
+    try {
+      const { key, totpCode } = req.body;
+      if (!key || !totpCode) {
+        return res.status(400).json({ error: 'key and totpCode are required' });
+      }
+
+      // req.user is attached by authenticate middleware
+      const admin = await prisma.user.findUnique({ where: { id: (req as any).user.id } });
+      if (!admin?.twoFactorEnabled || !admin.twoFactorSecret) {
+        return res.status(403).json({ error: '2FA is not enabled on this account. Enable it in your profile first.' });
+      }
+
+      const valid = speakeasy.totp.verify({
+        secret:   admin.twoFactorSecret,
+        encoding: 'base32',
+        token:    totpCode,
+        window:   1,
+      });
+
+      if (!valid) {
+        return res.status(401).json({ error: 'Invalid 2FA code' });
+      }
+
+      const value = await AdminService.revealSystemConfig(key);
+      res.json({ key, value });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  /**
+   * PUT /admin/system/settings
+   * Body: { entries: [{ key, value }], totpCode: string }
+   * Saves one or many config values, after 2FA check.
+   */
+  static async updateSystemSettings(req: Request, res: Response) {
+    try {
+      const { entries, totpCode } = req.body;
+
+      if (!entries || !Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ error: 'entries array is required' });
+      }
+      if (!totpCode) {
+        return res.status(400).json({ error: 'totpCode is required' });
+      }
+
+      const admin = await prisma.user.findUnique({ where: { id: (req as any).user.id } });
+      if (!admin?.twoFactorEnabled || !admin.twoFactorSecret) {
+        return res.status(403).json({ error: '2FA is not enabled on this account. Enable it in your profile first.' });
+      }
+
+      const valid = speakeasy.totp.verify({
+        secret:   admin.twoFactorSecret,
+        encoding: 'base32',
+        token:    totpCode,
+        window:   1,
+      });
+
+      if (!valid) {
+        return res.status(401).json({ error: 'Invalid 2FA code' });
+      }
+
+      await AdminService.upsertSystemConfigsBulk(entries);
+      res.json({ success: true, message: `${entries.length} setting(s) saved.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  static async setup2FA(req: Request, res: Response) {
+    try {
+      const result = await AdminService.setup2FA((req as any).user.id);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  static async enable2FA(req: Request, res: Response) {
+    try {
+      const { totpCode } = req.body;
+      if (!totpCode) return res.status(400).json({ error: 'totpCode is required' });
+      await AdminService.enable2FA((req as any).user.id, totpCode);
+      res.json({ success: true, message: '2FA enabled successfully' });
+    } catch (e: any) {
+      const status = e.message.includes('Invalid') ? 401 : 400;
+      res.status(status).json({ error: e.message });
     }
   }
 }

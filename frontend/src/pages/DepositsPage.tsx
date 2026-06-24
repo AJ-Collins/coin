@@ -13,7 +13,7 @@ export default function DepositsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
-  const [amount, setAmount] = useState(200);
+  const [amount, setAmount] = useState(60);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [depositConfirmed, setDepositConfirmed] = useState(false);
 

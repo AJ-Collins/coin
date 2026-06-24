@@ -8,9 +8,9 @@ interface Step1Props {
 
 export default function Step1Amount({ onNext, initialAmount }: Step1Props) {
   const [amount, setAmount] = useState<string>(initialAmount > 0 ? initialAmount.toString() : "100.00");
-  const minDeposit = 200;
+  const minDeposit = 60;
 
-  const quickAmounts = [200, 250, 300, 1000];
+  const quickAmounts = [60, 100, 300, 1000];
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

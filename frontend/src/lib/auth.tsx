@@ -9,6 +9,8 @@ interface AuthCtx {
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string) => Promise<User>;
   logout: () => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx>({} as AuthCtx);
@@ -57,12 +59,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user;
   }
 
+  async function forgotPassword(email: string) {
+    // Using your internal api utility automatically applies port 5000 and base prefixes
+    await api.post("/auth/forgot-password", { email });
+  }
+
+  async function resetPassword(token: string, password: string) {
+    await api.post("/auth/reset-password", { token, password });
+  }
+
   function logout() {
     setToken(null);
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, forgotPassword, resetPassword }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);
