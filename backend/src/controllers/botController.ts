@@ -151,8 +151,8 @@ export class BotController {
       }
 
       const tradeAmount = parseFloat(settings.tradeAmount);
-      if (isNaN(tradeAmount) || tradeAmount < 10 || tradeAmount > 100000) {
-        return res.status(400).json({ error: "Trade amount must be between $10 and $100,000" });
+      if (isNaN(tradeAmount) || tradeAmount < 200 || tradeAmount > 100000) {
+        return res.status(400).json({ error: "Trade amount must be between $200 and $100,000" });
       }
 
       const VALID_INTERVALS = ["15", "30", "60", "120", "180", "240", "300"];

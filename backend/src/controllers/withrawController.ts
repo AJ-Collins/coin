@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { WithdrawalService } from '../services/withdrawalService.js';
 import { fetchWithdrawalHistory } from '../services/withdrawalService.js';
+import { AddressValidator } from '../utils/addressValidator.js';
 
 export async function getWithdrawalHistory(req: Request, res: Response) {
   try {
@@ -24,8 +25,11 @@ export async function requestWithdrawal(req: Request, res: Response) {
       });
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$|^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(toAddress)) {
-      return res.status(400).json({ error: 'Invalid withdrawal address format' });
+    const isValid = AddressValidator.validate(toAddress, coin, network);
+    if (!isValid) {
+      return res.status(400).json({ 
+        error: `Invalid withdrawal address format for ${coin} on network '${network}'` 
+      });
     }
 
     const withdrawal = await WithdrawalService.requestWithdrawal({
