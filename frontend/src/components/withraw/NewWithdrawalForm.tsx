@@ -236,7 +236,6 @@ export default function NewWithdrawalForm({
             className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-8 pr-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all"
           />
         </div>
-        <p className="text-[11px] text-gray-500 pl-1">Minimum withdrawal: ${minimumWithdrawal.toFixed(2)}</p>
       </div>
 
       {/* Dynamic Processing Output Matrix */}

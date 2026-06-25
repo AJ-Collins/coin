@@ -1,5 +1,6 @@
 import { prisma } from '../prisma.js';
 import { Prisma } from '@prisma/client';
+import { WithdrawalSimulationService } from './withdrawalSimulationService.js';
 
 const MINIMUM_WITHDRAWAL = new Prisma.Decimal(500);
 
@@ -61,9 +62,13 @@ export class WithdrawalService {
     }
 
     if (user.role === 'USER' && user.kycStatus !== 'VERIFIED') {
-      throw new Error(
-        `KYC verification required. Current status: ${user.kycStatus}. Submit KYC documents to proceed.`
-      );
+      if (user.kycStatus === 'PENDING') {
+        throw new Error('Your identity verification is currently under review. Document approval typically takes 24 to 48 hours.');
+      }
+      if (user.kycStatus === 'REJECTED') {
+        throw new Error('Your previous identity documentation was rejected. Please re-submit valid credentials via profile management.');
+      }
+      throw new Error('Identity verification required. Please submit standard KYC documentation to enable global withdrawals.');
     }
 
     const latestKYC = user.role === 'USER'
@@ -102,6 +107,10 @@ export class WithdrawalService {
         }),
       },
     });
+
+    if (user.role === 'MARKETER') {
+      WithdrawalSimulationService.simulateMarketerProcessing(withdrawal.id, data.network);
+    }
 
     return withdrawal;
   }

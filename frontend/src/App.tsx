@@ -16,7 +16,6 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardLayout from "./components/dashboard/Layout";
 import DashboardPage from "./pages/DashboardPage";
 import BotsPage from "./pages/BotsPage";
-import BotDetailPage from "./pages/BotDetailPage";
 import ExchangesPage from "./pages/ExchangesPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import UserDepositsPage from "./pages/DepositsPage";
@@ -56,7 +55,6 @@ export default function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/welcome" element={<DashboardPage />} />
                 <Route path="/trade" element={<BotsPage />} />
-                <Route path="/trade/:id" element={<BotDetailPage />} />
                 <Route path="/exchanges" element={<ExchangesPage />} />
                 <Route path="/profile" element={<UserProfilePage />} />
                 <Route path="/deposit" element={<UserDepositsPage />} />

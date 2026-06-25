@@ -130,6 +130,25 @@ services:
       DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/listenerIndex.js
 
+  probot-worker:
+    build: .
+    image: aiscalping-backend
+    restart: always
+    deploy:
+      replicas: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
+    command: node dist/workers/proBotWorker.js
+
 volumes:
   postgres_data:
   redis_data:

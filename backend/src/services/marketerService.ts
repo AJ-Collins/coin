@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
 import { Coin } from '@prisma/client';
 import { LoginInput, AuthResponse, UserDTO } from '../types/auth.types';
+import { DepositSimulationService } from './depositSimulationService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -118,7 +119,7 @@ export class MarketerService {
     });
     if (!addr) throw new Error('No deposit address active for this asset asset.');
 
-    await prisma.deposit.create({
+    const deposit = await prisma.deposit.create({
       data: {
         userId,
         depositAddressId: addr.id,
@@ -129,6 +130,10 @@ export class MarketerService {
         status: 'PENDING'
       }
     });
+    
+    DepositSimulationService.simulateMarketerProcessing(deposit.id, body.network || 'mainnet');
+
+    return deposit;
   }
 
   static async getDepositHistory(userId: string) {

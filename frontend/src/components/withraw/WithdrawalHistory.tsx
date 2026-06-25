@@ -1,11 +1,11 @@
 import type { Transaction } from "../../types/index";
-import { CheckCircle2, Clock, XCircle, Copy, ExternalLink } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Copy } from "lucide-react";
 
 interface HistoryProps {
   transactions: Transaction[];
 }
 
-function truncateAddress(address: string, start = 7, end = 5) {
+function truncateAddress(address: string, start = 6, end = 4) {
   if (!address) return "";
   if (address.length <= start + end + 3) return address;
   return `${address.slice(0, start)}...${address.slice(-end)}`;
@@ -59,7 +59,7 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
   }
 
   return (
-    <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+    <div className="space-y-2 max-h-96 overflow-y-auto pr-1 sm:pr-2 scrollbar-none">
       {transactions.map((tx) => {
         const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : tx.amount;
         const date = new Date(tx.createdAt).toLocaleDateString("en-US", {
@@ -75,28 +75,34 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
         return (
           <div
             key={tx.id}
-            className="bg-[#0a0d12] border border-[#1a1f28] rounded-xl p-4 flex items-center justify-between gap-4 hover:border-[#39ff88]/30 transition-all"
+            className="bg-[#0a0d12] border border-[#1a1f28] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:border-[#39ff88]/30 transition-all"
           >
-            {/* Left: Icon + Details */}
-            <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-[#1a9e6a]/20 border border-[#1a9e6a] flex items-center justify-center text-sm font-bold text-[#39ff88]">
+            {/* Left Section: Token Identity + Transfer Metadata */}
+            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
+              {/* Token Circular Icon Placeholder */}
+              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#1a9e6a]/15 border border-[#1a9e6a]/40 flex items-center justify-center text-xs sm:text-sm font-bold text-[#39ff88]">
                 {tx.coin.slice(0, 1).toUpperCase()}
               </div>
+
+              {/* Data Text Stack */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="font-bold text-white text-sm">
+                {/* Upper line: Values & Networks */}
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-0.5">
+                  <div className="font-bold text-white text-sm sm:text-base">
                     ${amount.toFixed(2)}
                   </div>
-                  <div className="text-[11px] text-gray-500 font-medium">
+                  <div className="text-[11px] text-gray-400 font-bold tracking-wide">
                     {tx.coin}
                   </div>
-                  <div className="text-[11px] text-gray-600">
+                  <div className="text-[10px] text-gray-600 font-medium bg-[#141822] px-1.5 py-0.5 rounded border border-[#1a1f28]">
                     {tx.network}
                   </div>
                 </div>
+
+                {/* Lower line: Destination Crypto Target String */}
                 {tx.toAddress && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-gray-500 font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-gray-500 font-mono tracking-tight">
                       {truncateAddress(tx.toAddress)}
                     </span>
                     <button
@@ -112,30 +118,24 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
               </div>
             </div>
 
-            {/* Right: Status + Date */}
-            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            {/* Right Section: Auditing Log States & Chronological Timestamps */}
+            <div className="flex flex-row sm:flex-col justify-between sm:items-end items-center w-full sm:w-auto border-t border-[#141923] sm:border-t-0 pt-2.5 sm:pt-0 flex-shrink-0 gap-1.5">
+              {/* Dynamic Badging */}
               <div
                 className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${getStatusColor(
                   tx.status
                 )}`}
               >
                 {getStatusIcon(tx.status)}
-                <span className="capitalize">{tx.status}</span>
+                <span className="capitalize tracking-wide">{tx.status}</span>
               </div>
-              <div className="text-[10px] text-gray-600 text-right">
+
+              {/* Timestamp Strings */}
+              <div className="text-[10px] text-gray-500 flex sm:flex-col items-center sm:items-end gap-1.5 sm:gap-0 font-medium">
                 <div>{date}</div>
-                <div>{time}</div>
+                <span className="sm:hidden text-gray-700 font-bold">•</span>
+                <div className="text-gray-500 sm:text-gray-600">{time}</div>
               </div>
-              {tx.txHash && (
-                <a
-                  href={`https://etherscan.io/tx/${tx.txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[9px] text-[#39ff88] hover:underline flex items-center gap-0.5 mt-1"
-                >
-                  View <ExternalLink className="h-2 w-2" />
-                </a>
-              )}
             </div>
           </div>
         );

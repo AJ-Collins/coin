@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "../lib/api"; // Your custom axios wrapper
+import api from "../lib/api"; // Custom axios wrapper
 
 import StepTracker from "../components/deposits/StepTracker";
 import Step1Amount from "../components/deposits/Step1Amount";
@@ -12,11 +12,18 @@ import DepositHistory from "../components/deposits/DepositHistory";
 export default function DepositsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Determine if the logged-in account has isolated Marketer configurations
+  const isMarketer = user?.role === "MARKETER";
+
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState(60);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [depositConfirmed, setDepositConfirmed] = useState(false);
+  const [depositStartedAt, setDepositStartedAt] = useState<Date | null>(null);
+  const [creditedDeposit, setCreditedDeposit] = useState<any>(null);
 
+  // 1. Account balance context query
   const { data: liveAccount } = useQuery({
     queryKey: ['accountBalance'],
     queryFn: async () => {
@@ -30,25 +37,75 @@ export default function DepositsPage() {
   const currency = liveAccount?.currency ?? user?.accounts?.find(a => a.type === "REAL")?.currency ?? "USD";
   const formattedBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(balance);
 
-  // 2. Query to load user historical transactions via React-Query
-  const { data: history = [] } = useQuery({
-    queryKey: ["deposit-history"],
+  // 2. Fully Aggregated & Normalized History Query
+  const { data: history = [] } = useQuery<any[]>({
+    queryKey: ["deposit-history", user?.role],
     queryFn: async () => {
-      const { data } = await api.get("/deposit/history");
-      return data;
+      const endpoint = isMarketer ? "/marketer/deposit/history" : "/deposit/history";
+      const response = await api.get(endpoint);
+      
+      let rawHistory: any[] = [];
+      if (Array.isArray(response.data)) {
+        rawHistory = response.data;
+      } else if (response.data && response.data.data) {
+        rawHistory = Array.isArray(response.data.data.deposits)
+          ? response.data.data.deposits
+          : Array.isArray(response.data.data) 
+            ? response.data.data 
+            : [];
+      }
+
+      // Map-normalize fields to ensure UI presentation properties match uniformly
+      return rawHistory.map((d: any) => ({
+        ...d,
+        coin: d.coin || d.currency || "USD", 
+      }));
     },
-    refetchInterval: step === 3 && !depositConfirmed ? 10000 : false,
+    // Keep polling active until the backend completes its network confirmation delay
+    refetchInterval: step === 3 && !depositConfirmed ? 2000 : false,
   });
 
-  const [depositStartedAt, setDepositStartedAt] = useState<Date | null>(null);
-
+  // 3. Complete conditional execution orchestration mutation block
   const createDepositMutation = useMutation({
     mutationFn: async (payload: { amount: number; currency: string; network: string }) => {
-      const { data } = await api.post("/deposit/address", {
-        coin: payload.currency,
-        network: payload.network,
-      });
-      return data;
+      if (isMarketer) {
+        // Step A: Target Marketer isolated token allocation engine
+        const initRes = await api.post("/marketer/deposit/initiate", { currency: payload.currency });
+        const initData = initRes.data?.data || initRes.data;
+
+        const simulatedTxHash = `0x_sim_hash_${Math.random().toString(16).substring(2, 10)}`;
+
+        // Step B: Auto-Broadcast simulation trigger so it updates the DB in the background
+        const confirmRes = await api.post("/marketer/deposit/confirm", {
+          currency: payload.currency,
+          network: payload.network,
+          amount: payload.amount,
+          txHash: simulatedTxHash
+        });
+
+        // Extract the unique database record instance metadata returned from the backend
+        const confirmData = confirmRes.data?.data || confirmRes.data;
+
+        return {
+          address: initData.address,
+          coin: payload.currency,
+          network: initData.network || payload.network,
+          expiresInSeconds: 3600,
+          txHash: simulatedTxHash,
+          // 🧠 Store the actual unique DB row ID to clear out interceptor evaluation collisions
+          depositId: confirmData?.id || confirmData?.deposit?.id || null, 
+        };
+      } else {
+        // Standard flow pathway for normal platform accounts
+        const { data } = await api.post("/deposit/address", {
+          coin: payload.currency,
+          network: payload.network,
+        });
+        return data?.data || data;
+      }
+    },
+    onMutate: () => {
+      setDepositStartedAt(new Date());
     },
     onSuccess: (data, variables) => {
       const CRYPTO_RATES: Record<string, number> = {
@@ -57,68 +114,72 @@ export default function DepositsPage() {
       };
       const rate = CRYPTO_RATES[variables.currency] ?? 1;
 
-      setDepositStartedAt(new Date()); // track when this session started
       setPaymentDetails({
         address: data.address,
         amountToSend: parseFloat((variables.amount / rate).toFixed(8)),
         currency: data.coin,
-        network: variables.network,
+        network: data.network || variables.network,
         expiresInSeconds: data.expiresInSeconds ?? 3600,
+        txHash: data.txHash || null,
+        depositId: data.depositId || null, // Pass forward unique ID
       });
       setStep(3);
       queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.message || "Failed to generate deposit address";
+      const message = err?.response?.data?.error || err?.response?.data?.message || "Failed to generate deposit address";
       alert(message);
     },
   });
 
-  const [creditedDeposit, setCreditedDeposit] = useState<any>(null);
-
-  // Detect when the latest deposit gets credited
+  // 4. Automated Credit Status Interceptor
   useEffect(() => {
     if (step !== 3 || !paymentDetails || depositConfirmed || !depositStartedAt) return;
 
-    const credited = history.find(
-      (d: any) =>
-        d.coin === paymentDetails.currency &&
-        d.status === "CREDITED" &&
-        new Date(d.createdAt) > depositStartedAt // only deposits after this session
-    );
+    const credited = history.find((d: any) => {
+      const isSettled = d.status === "CREDITED" || d.status === "SWEPT";
+
+      // 🧠 For Marketers, check against the exact unique row ID created for this specific action
+      if (isMarketer && paymentDetails.depositId) {
+        return d.id === paymentDetails.depositId && isSettled;
+      }
+
+      // Fallback baseline verification for standard user payment flows
+      return d.coin === paymentDetails.currency && isSettled && new Date(d.createdAt) > depositStartedAt;
+    });
 
     if (credited) {
       setCreditedDeposit(credited);
       setDepositConfirmed(true);
+      // Force account balance update right away
       queryClient.invalidateQueries({ queryKey: ["accountBalance"] });
     }
-  }, [history, step, paymentDetails, depositConfirmed, depositStartedAt]);
-
-
+  }, [history, step, paymentDetails, depositConfirmed, depositStartedAt, isMarketer, queryClient]);
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 space-y-6">
-      {/* Platform Screen Title */}
+      {/* Dynamic Screen Title Branding Header */}
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-xl font-black text-white leading-none mb-1">Deposit Crypto</h1>
+          <h1 className="text-xl font-black text-white leading-none mb-1 flex items-center gap-2">
+            Deposit Crypto 
+          </h1>
           <p className="text-xs text-gray-400">Deposit cryptocurrency to fund your account</p>
         </div>
       </div>
 
-      {/* Main Core Form Card Container */}
+      {/* Core Card Containment Node */}
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 relative overflow-hidden shadow-xl">
         
-        {/* Real Balance Context Header line */}
+        {/* Real-time Balancing Frame */}
         <div className="flex justify-between items-center border-b border-[#1a1f28] pb-4 mb-2">
           <span className="text-xs font-bold text-gray-400">Current Balance</span>
           <span className="text-base font-black text-white font-mono">{formattedBalance}</span>
         </div>
 
-        {/* Dynamic Horizontal Progress Steps component */}
         <StepTracker currentStep={step} />
 
-        {/* Step Routing Switcher matrix */}
+        {/* Dynamic Multi-Step Interfacing Frame Routing */}
         {step === 1 && (
           <Step1Amount 
             initialAmount={amount} 
@@ -150,13 +211,11 @@ export default function DepositsPage() {
             </div>
             <div>
               <h2 className="text-lg font-black text-white mb-1">Deposit Confirmed!</h2>
-              <p className="text-xs text-gray-400">
-                Your balance has been updated successfully.
-              </p>
+              <p className="text-xs text-gray-400">Your balance has been updated successfully.</p>
             </div>
             <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl px-6 py-3">
               <span className="text-[#39ff88] font-black text-xl font-mono">
-                +${creditedDeposit ? Number(creditedDeposit.usdValueAtCredit).toFixed(2) : "0.00"}
+                +${creditedDeposit ? Number(creditedDeposit.usdValueAtCredit || creditedDeposit.amount).toFixed(2) : "0.00"}
               </span>
               <p className="text-xs text-gray-500 mt-0.5">added to your account</p>
             </div>
@@ -177,8 +236,8 @@ export default function DepositsPage() {
         )}
       </div>
 
-      {/* Render Historical List only when on steps 1 or 2 */}
-      {step < 3 && <DepositHistory history={history} />}
+      {/* Historical Ledger Table */}
+      {step < 3 && <DepositHistory history={history.slice(0, 5)} />}
     </div>
   );
 }

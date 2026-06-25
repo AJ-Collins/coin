@@ -1,31 +1,25 @@
 import { useState } from "react";
+import { useAuth } from "../lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NewWithdrawalForm from "../components/withraw/NewWithdrawalForm";
 import WithdrawalHistory from "../components/withraw/WithdrawalHistory";
 import KYCStatus from "../components/withraw/KYCStatus";
 import type { Transaction, KYCStatus as KYCStatusType } from "../types/index";
-import { History } from "lucide-react";
+import { History, Clock, AlertTriangle } from "lucide-react";
 import api from "../lib/api";
 
 export default function WithdrawalsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [kycStatus, setKycStatus] = useState<string>("UNVERIFIED");
-  const [showKyc, setShowKyc] = useState(false); // only revealed when user attempts withdrawal unverified
+  const [showKyc, setShowKyc] = useState(false); 
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
     type: "success" | "error";
   } | null>(null);
 
-  const { data: userProfile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const { data } = await api.get("/auth/me");
-      return data;
-    },
-  });
-
-  // Fetch KYC status quietly in the background so we know it before the user ever clicks Withdraw
+  // Fetch KYC status quietly in the background
   useQuery<KYCStatusType>({
     queryKey: ["kyc-status"],
     queryFn: async () => {
@@ -56,6 +50,7 @@ export default function WithdrawalsPage() {
     },
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["withdrawal-history"] });
+      queryClient.invalidateQueries({ queryKey: ["accountBalance"] });
       setToast({
         show: true,
         type: "success",
@@ -73,17 +68,57 @@ export default function WithdrawalsPage() {
     },
   });
 
-  const handleWithdrawalSubmit = async (withdrawalData: {
+  const accounts = user?.accounts || [];
+  const realAccount = accounts.find((acc: any) => acc.type === "REAL");
+
+  const handleWithdrawalSubmit = async (formData: {
     accountId: string;
     amount: number;
     coin: string;
     network: string;
     toAddress: string;
   }) => {
-    await withdrawMutation.mutateAsync(withdrawalData);
-  };
+    const isMarketer = user?.role === "MARKETER";
 
-  const primaryAccount = userProfile?.accounts?.[0];
+    if (!isMarketer) {
+      if (kycStatus === "PENDING") {
+        setToast({
+          show: true,
+          type: "error",
+          message: "Verification is in progress. Review processes resolve within 24 to 48 hours.",
+        });
+        setShowKyc(true);
+        return;
+      }
+
+      if (kycStatus !== "VERIFIED") {
+        setToast({
+          show: true,
+          type: "error",
+          message: "KYC validation required before requesting funds.",
+        });
+        setShowKyc(true);
+        return;
+      }
+    }
+
+    if (!realAccount?.id) {
+      setToast({
+        show: true,
+        type: "error",
+        message: "No live trading account setup context detected.",
+      });
+      return;
+    }
+
+    await withdrawMutation.mutateAsync({
+      accountId: realAccount.id,
+      amount: formData.amount,
+      coin: formData.coin,
+      network: formData.network,
+      toAddress: formData.toAddress,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#05070a] text-white p-4 md:p-8 flex flex-col items-center justify-start space-y-6">      
@@ -97,39 +132,56 @@ export default function WithdrawalsPage() {
           </div>
         </div>
 
-        {/* Withdrawal Form — always visible */}
+        {/* Withdrawal Form */}
         <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 shadow-xl">
           <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">
             Withdrawal Request
           </h2>
           <NewWithdrawalForm
-            kycStatus={kycStatus}
-            accountId={primaryAccount?.id || "default"}
+            kycStatus={user?.role === "MARKETER" ? "VERIFIED" : kycStatus}
+            accountId={realAccount?.id || "default"}
             onExecuteWithdraw={handleWithdrawalSubmit}
             onKycRequired={() => setShowKyc(true)}
           />
         </div>
 
-        {/* KYC Verification — only appears once user tries to withdraw while unverified */}
-        {showKyc && kycStatus !== "VERIFIED" && kycStatus !== "NOT_REQUIRED" && (
+        {/* Dynamic KYC Conditional Processing Block */}
+        {showKyc && user?.role !== "MARKETER" && kycStatus !== "VERIFIED" && (
           <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 shadow-xl animate-slideDown">
-            <div className="flex items-start gap-3 mb-4">
-              <div>
+            {kycStatus === "PENDING" ? (
+              <div className="text-center py-4 space-y-3">
+                <Clock className="h-8 w-8 text-amber-400 mx-auto animate-pulse" />
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Identity Verification Required
+                  Verification Audit Pending
                 </h2>
-                <p className="text-xs text-gray-400 mt-1">
-                  Complete KYC before you can withdraw funds.
+                <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+                  Your identity documents are securely uploaded and awaiting administrative review. This compliance check typically takes <span className="text-amber-400 font-semibold">24 to 48 hours</span> to process completely.
                 </p>
               </div>
-            </div>
-            <KYCStatus onStatusChange={setKycStatus} />
+            ) : (
+              <>
+                <div className="flex items-start gap-3 mb-4">
+                  {kycStatus === "REJECTED" && <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />}
+                  <div>
+                    <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                      {kycStatus === "REJECTED" ? "Verification Rejected" : "Identity Verification Required"}
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {kycStatus === "REJECTED" 
+                        ? "Your previous document validation submission failed audit criteria. Please submit updated structural documentation."
+                        : "Complete standard compliance registration parameters to release external fund access limits."}
+                    </p>
+                  </div>
+                </div>
+                <KYCStatus onStatusChange={setKycStatus} />
+              </>
+            )}
           </div>
         )}
 
         {toast?.show && (
           <div
-            className={`w-full max-w-2xl rounded-xl p-4 border animate-slideDown ${
+            className={`w-full max-w-2xl rounded-xl p-4 border transiton-all ${
               toast.type === "success"
                 ? "bg-[#0d1712] border-[#1a442b]"
                 : "bg-[#1a0d0d] border-[#441a1a]"
@@ -140,13 +192,13 @@ export default function WithdrawalsPage() {
                 toast.type === "success" ? "text-[#39ff88]" : "text-red-400"
               }`}
             >
-              {toast.type === "success" ? "Withdrawal Submitted" : "Error"}
+              {toast.type === "success" ? "Withdrawal Submitted" : "System Notification"}
             </h4>
             <p className="text-xs text-gray-400 mt-0.5">{toast.message}</p>
           </div>
         )}
 
-        {/* Withdrawal History */}
+        {/* Withdrawal History List Container */}
         <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 shadow-xl">
           <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wider">
             <History className="h-4 w-4 text-gray-400" />
@@ -165,7 +217,7 @@ export default function WithdrawalsPage() {
               </p>
             </div>
           ) : (
-            <WithdrawalHistory transactions={history} />
+            <WithdrawalHistory transactions={history.slice(0, 5)} />
           )}
         </div>
       </div>
