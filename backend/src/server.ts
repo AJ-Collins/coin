@@ -23,13 +23,18 @@ app.use(helmet());
 app.set('trust proxy', 1);
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
+    if (req.path === '/health') {
+      return next();
+    }
+
     if (req.method === 'OPTIONS') {
       return next();
     }
-    
+
     if (req.header('x-forwarded-proto') !== 'https') {
       return res.redirect(`https://${req.header('host')}${req.url}`);
     }
+
     next();
   });
 }
