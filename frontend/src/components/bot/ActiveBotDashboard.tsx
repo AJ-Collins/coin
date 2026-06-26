@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../../lib/api";
-import { Square, Play, Trash2, Layers, Percent, DollarSign, Activity, Sliders, Terminal, Bot, TrendingUp, TrendingDown } from "lucide-react";
+import { Square, Play, Trash2, Activity, Sliders, Terminal, Bot, TrendingUp, TrendingDown } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ActiveBotProps {
