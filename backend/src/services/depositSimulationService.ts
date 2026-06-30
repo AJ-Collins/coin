@@ -1,191 +1,162 @@
-import { prisma } from '../prisma.js';
-import { DepositStatus, WithdrawalStatus } from '@prisma/client';
+// depositSimulationService.ts
+import prisma from '../utils/prisma.js';
+import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 
 export class DepositSimulationService {
-  /**
-   * Calculates simulated block-confirmation time delays (in milliseconds)
-   * based on the selected network.
-   */
+
   private static getNetworkDelay(network: string): number {
     const net = network.toUpperCase();
     if (net.includes('TRC20') || net.includes('TRON') || net.includes('BEP20') || net.includes('BSC') || net.includes('POLYGON') || net.includes('SOLANA')) {
-      return 6000; // Fast chains: 6 seconds
+      return 6000;
     }
     if (net.includes('ERC20') || net.includes('ETH')) {
-      return 15000; // Moderate chains: 15 seconds
+      return 15000;
     }
-    return 25000; // BTC / Default: 25 seconds
+    return 25000;
   }
 
-  /**
-   * Generates a realistic simulated gas/network fee in USD 
-   * based on current average chain economics.
-   */
   private static getSimulatedNetworkFee(network: string): number {
     const net = network.toUpperCase();
-
-    // 1. Testnets carry zero real-world fiat cost
-    if (net.includes('TESTNET') || net.includes('SEPOLIA')) {
-      return 0.00;
-    }
-
-    // 2. High-Cost Networks (Ethereum Mainnet, Bitcoin)
-    if (net === 'ETHEREUM' || net.includes('ERC20')) {
-      // Simulates fluctuating ETH gas between $2.50 and $8.50
-      return Number((Math.random() * 6.0 + 2.5).toFixed(2));
-    }
-    if (net === 'BITCOIN' || net === 'BTC') {
-      // Simulates BTC miner fees between $1.50 and $4.50
-      return Number((Math.random() * 3.0 + 1.5).toFixed(2));
-    }
-
-    // 3. Moderate-Cost Layer 2s (Arbitrum, TON)
-    if (net.includes('ARBITRUM') || net.includes('TON')) {
-      // Simulates L2 rollup fees between $0.10 and $0.40
-      return Number((Math.random() * 0.3 + 0.1).toFixed(2));
-    }
-
-    // 4. Low-Cost Networks (Tron, BSC, Polygon, Solana, XRP, Dogecoin, Litecoin)
-    // Simulates ultra-low fees between $0.01 and $0.05
+    if (net.includes('TESTNET') || net.includes('SEPOLIA')) return 0.00;
+    if (net === 'ETHEREUM' || net.includes('ERC20')) return Number((Math.random() * 6.0 + 2.5).toFixed(2));
+    if (net === 'BITCOIN' || net === 'BTC') return Number((Math.random() * 3.0 + 1.5).toFixed(2));
+    if (net.includes('ARBITRUM') || net.includes('TON')) return Number((Math.random() * 0.3 + 0.1).toFixed(2));
     return Number((Math.random() * 0.04 + 0.01).toFixed(2));
   }
 
   /**
-   * Processes the deposit processing sequence asynchronously in the background.
-   * Deducts matching amounts from pending withdrawals, credits the remaining/full balances,
-   * and sets status flags to bypass automatic chain sweep daemons.
+   * Deducts the deposit amount from the user's VIRTUAL WALLET (not on-chain),
+   * applies a simulated gas fee, and credits the NET amount to their REAL account.
+   * Fails cleanly if the virtual wallet doesn't have enough balance.
    */
   static simulateMarketerProcessing(depositId: string, network: string) {
     const delay = this.getNetworkDelay(network);
-
-    console.log(`[DEPOSIT SIMULATION] Processing deposit ${depositId}. Network settlement latency: ${delay / 1000}s...`);
+    console.log(`[DEPOSIT SIMULATION] Processing deposit ${depositId}. Settling in ${delay / 1000}s...`);
 
     setTimeout(async () => {
       try {
-        // 1. Verify existence of the targeted tracking record
-        const deposit = await prisma.deposit.findUnique({
-          where: { id: depositId },
-        });
+        const deposit = await prisma.deposit.findUnique({ where: { id: depositId } });
 
         if (!deposit || deposit.status !== 'PENDING') {
           console.warn(`[DEPOSIT ABORTED] Deposit ${depositId} is invalid or already processed.`);
           return;
         }
 
-        // Find the user's live primary REAL accounting model
         const targetAccount = await prisma.account.findFirst({
           where: { userId: deposit.userId, type: 'REAL' },
         });
 
         if (!targetAccount) {
           console.error(`[DEPOSIT FAILED] No REAL account found for User: ${deposit.userId}`);
+          await this.markFailed(depositId, 'No REAL account found for user');
           return;
         }
 
-        // FEE CALCULATION ENGINE
-        const rawAmount = Number(deposit.amount);
-        const networkFee = this.getSimulatedNetworkFee(network);
-        // Ensure the fee doesn't result in a negative deposit amount
-        const netDepositAmt = Math.max(0, Number((rawAmount - networkFee).toFixed(2)));
+        const rawAmount = new Prisma.Decimal(deposit.amount);
+        const networkFee = new Prisma.Decimal(this.getSimulatedNetworkFee(network));
+        const netCreditAmount = Prisma.Decimal.max(0, rawAmount.sub(networkFee));
 
-        console.log(`[DEPOSIT SIMULATION] Gross: $${rawAmount} | ${network} Gas Fee: $${networkFee} | Net Credit: $${netDepositAmt}`);
+        console.log(`[DEPOSIT SIMULATION] Gross: $${rawAmount} | ${network} Gas Fee: $${networkFee} | Net Credit: $${netCreditAmount}`);
 
-        // Look for the oldest active pending withdrawal for this specific user to offset
-        const activeWithdrawal = await prisma.withdrawal.findFirst({
-          where: {
-            userId: deposit.userId,
-            status: 'PENDING',
-          },
-          orderBy: { createdAt: 'asc' },
-        });
+        await prisma.$transaction(async (tx) => {
+          // Lock the virtual wallet row to prevent concurrent deposits/withdrawals racing on balance
+          const walletRows = await tx.$queryRaw<{ id: string; balance: Prisma.Decimal }[]>`
+            SELECT id, balance FROM "VirtualWallet" WHERE "userId" = ${deposit.userId} FOR UPDATE
+          `;
+          const wallet = walletRows[0];
 
-        // Initialize atomic prisma transaction operations collection matrix
-        const transactionOperations = [];
-
-        if (activeWithdrawal) {
-          const withdrawalAmt = Number(activeWithdrawal.amount);
-
-          if (netDepositAmt >= withdrawalAmt) {
-            // Case A: Net Deposit completely fulfills or exceeds the pending withdrawal amount
-            transactionOperations.push(
-              prisma.withdrawal.update({
-                where: { id: activeWithdrawal.id },
-                data: {
-                  amount: 0,
-                  status: 'COMPLETED',
-                  txHash: `0x_sim_offset_${crypto.randomUUID().substring(0, 8)}`,
-                },
-              })
-            );
-            console.log(`[DEPOSIT SIMULATION] Net Deposit fully covers and satisfies Withdrawal ID: ${activeWithdrawal.id}`);
-          } else if (netDepositAmt > 0) {
-            // Case B: Partially offset/deduct the incoming net amount from the active withdrawal record
-            transactionOperations.push(
-              prisma.withdrawal.update({
-                where: { id: activeWithdrawal.id },
-                data: {
-                  amount: {
-                    decrement: netDepositAmt,
-                  },
-                },
-              })
-            );
-            console.log(`[DEPOSIT SIMULATION] Partially deducted $${netDepositAmt} from Pending Withdrawal ID: ${activeWithdrawal.id}`);
+          if (!wallet) {
+            throw new Error(`No virtual wallet exists for user ${deposit.userId} — cannot fund deposit`);
           }
-        }
 
-        // 2. Add structural core adjustments (Balance Credit + Sweeper Exclusion Status)
-        transactionOperations.push(
-          // Set status to SWEPT so on-chain sweepers ignore this internal/mock entry
-          prisma.deposit.update({
+          const walletBalance = new Prisma.Decimal(wallet.balance.toString());
+
+          // Debit the FULL gross amount from the virtual wallet (gas fee comes out of the user's pocket)
+          if (walletBalance.lessThan(rawAmount)) {
+            throw new Error(
+              `Insufficient virtual wallet balance. Has $${walletBalance}, needs $${rawAmount}`
+            );
+          }
+
+          const updatedWallet = await tx.virtualWallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: rawAmount } },
+          });
+
+          await tx.virtualWalletTransaction.create({
+            data: {
+              walletId: wallet.id,
+              type: 'DEBIT',
+              amount: rawAmount,
+              balanceAfter: updatedWallet.balance,
+              description: `Deposit funding: ${deposit.coin} on ${deposit.network} (gas fee $${networkFee})`,
+              referenceId: depositId,
+            },
+          });
+
+          // Credit the NET amount (after gas fee) to the user's real account
+          await tx.account.update({
+            where: { id: targetAccount.id },
+            data: { balance: { increment: netCreditAmount.toNumber() } },
+          });
+
+          // Mark deposit settled
+          await tx.deposit.update({
             where: { id: depositId },
             data: {
-              status: 'SWEPT', 
-              amount: netDepositAmt, // Update core amount to reflect the post-fee reality
-              usdValueAtCredit: netDepositAmt,
+              status: 'SWEPT',
+              amount: netCreditAmount,
+              usdValueAtCredit: netCreditAmount,
               creditedAt: new Date(),
               sweptAt: new Date(),
               sweptTx: `0x_sim_sweep_${crypto.randomUUID().substring(0, 8)}`,
             },
-          }),
+          });
 
-          // Credit the User's live fiat ledger tracking system balance with the NET amount
-          prisma.account.update({
-            where: { id: targetAccount.id },
-            data: {
-              balance: {
-                increment: netDepositAmt,
-              },
-            },
-          }),
-
-          // Append persistent auditing trail records, including the fee deduction
-          prisma.auditLog.create({
+          await tx.auditLog.create({
             data: {
               userId: deposit.userId,
-              action: 'DEPOSIT_SIM_PROCESSED_WITH_FEE',
+              action: 'DEPOSIT_FUNDED_FROM_VIRTUAL_WALLET',
               metadata: JSON.stringify({
-                depositId: deposit.id,
-                grossAmount: rawAmount,
-                networkFee: networkFee,
-                netAmountCredited: netDepositAmt,
+                depositId,
+                grossAmount: rawAmount.toString(),
+                networkFee: networkFee.toString(),
+                netAmountCredited: netCreditAmount.toString(),
                 networkUsed: network,
-                offsetWithdrawalId: activeWithdrawal?.id || null,
-                sweeperBypassStatus: 'SWEPT',
+                virtualWalletDebited: rawAmount.toString(),
+                finalizedAt: new Date().toISOString(),
               }),
             },
-          })
-        );
+          });
+        });
 
-        // Execute processing pipeline atomically
-        await prisma.$transaction(transactionOperations);
-
-        console.log(`[DEPOSIT SUCCESS] Settled $${netDepositAmt} for Deposit ${depositId}. Balance updated.`);
+        console.log(`[DEPOSIT SUCCESS] Settled $${netCreditAmount} for Deposit ${depositId}, debited $${rawAmount} from virtual wallet.`);
 
       } catch (error) {
-        console.error(`[DEPOSIT CRITICAL ERROR] Failed to process database operations for execution line ${depositId}:`, error);
+        console.error(`[DEPOSIT CRITICAL ERROR] depositId=${depositId}`, error);
+        if (error instanceof Error) {
+          console.error('[ERROR MESSAGE]', error.message);
+        }
+        await this.markFailed(depositId, error instanceof Error ? error.message : String(error));
       }
     }, delay);
+  }
+
+  private static async markFailed(depositId: string, reason: string) {
+    try {
+      await prisma.deposit.update({
+        where: { id: depositId },
+        data: { status: 'FAILED' },
+      });
+      await prisma.auditLog.create({
+        data: {
+          action: 'DEPOSIT_FAILED',
+          metadata: JSON.stringify({ depositId, reason, failedAt: new Date().toISOString() }),
+        },
+      });
+    } catch (e) {
+      console.error(`[DEPOSIT FAILED-WRITE ERROR] could not mark ${depositId} as FAILED`, e);
+    }
   }
 }

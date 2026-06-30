@@ -12,37 +12,29 @@ import { generateXRPAddress } from '../wallets/xrp.js';
 import { generateLitecoinAddress } from '../wallets/litecoin.js';
 import { generateDogecoinAddress } from '../wallets/dogecoin.js';
 
-type GeneratorType = 'evm' | 'btc' | 'solana' | 'ton' | 'tron' | 'xrp' | 'ltc' | 'doge';
+type GeneratorType = 'evm' | 'btc' | 'solana' | 'ton' | 'tron';
 
 const NETWORK_TYPE: Record<SupportedNetwork, GeneratorType> = {
-  sepolia:          'evm',
   eth_mainnet:      'evm',
-  bsc_testnet:      'evm',
+  bsc_mainnet:      'evm',
   polygon_mainnet:  'evm',
   arbitrum_mainnet: 'evm',
   btc_mainnet:      'btc',
-  btc_testnet:      'btc',
   solana_mainnet:   'solana',
   ton_mainnet:      'ton',
   tron_mainnet:     'tron',
-  xrp_mainnet:      'xrp',
-  ltc_mainnet:      'ltc',
-  doge_mainnet:     'doge',
 };
 
 const VALID_NETWORKS: Record<string, SupportedNetwork[]> = {
-  ETH:   ['sepolia', 'eth_mainnet', 'arbitrum_mainnet'],
-  USDT:  ['sepolia', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet'],
-  USDC:  ['sepolia', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet'],
-  BNB:   ['bsc_testnet'],
+  ETH:   ['eth_mainnet', 'arbitrum_mainnet'],
+  USDT:  ['eth_mainnet', 'bsc_mainnet', 'polygon_mainnet', 'arbitrum_mainnet', 'tron_mainnet'], // Added TRC20 support for frontend
+  USDC:  ['eth_mainnet', 'bsc_mainnet', 'polygon_mainnet', 'arbitrum_mainnet'],
+  BNB:   ['bsc_mainnet'],
   MATIC: ['polygon_mainnet'],
-  BTC:   ['btc_mainnet', 'btc_testnet'],
+  BTC:   ['btc_mainnet'],
   SOL:   ['solana_mainnet'],
   TON:   ['ton_mainnet'],
   TRX:   ['tron_mainnet'],
-  XRP:   ['xrp_mainnet'],
-  LTC:   ['ltc_mainnet'],
-  DOGE:  ['doge_mainnet'],  
 };
 
 async function runGenerator(
@@ -52,13 +44,10 @@ async function runGenerator(
 ): Promise<{ address: string; path: string }> {
   switch (generatorType) {
     case 'evm':    return generateEVMAddress(index);
-    case 'btc':    return generateBTCAddress(index, network as 'btc_mainnet' | 'btc_testnet');
+    case 'btc':    return generateBTCAddress(index, network as 'btc_mainnet');
     case 'solana': return generateSolanaAddress(index);
-    case 'ton':    return generateTONAddress(index);   // async — returns Promise
+    case 'ton':    return generateTONAddress(index);
     case 'tron':   return generateTronAddress(index);
-    case 'xrp':    return generateXRPAddress(index);
-    case 'ltc':    return generateLitecoinAddress(index);
-    case 'doge':   return generateDogecoinAddress(index);
   }
 }
 
@@ -85,7 +74,7 @@ export async function getOrCreateDepositAddress(
     where: { userId_coin_network: { userId, coin: coinUpper, network } },
   });
   if (existing) {
-    return { address: existing.address, coin: coinUpper, network, reused: true };
+    return { address: existing.address, coin: coinUpper, network, reused: true, depositAddressId: existing.id,  };
   }
 
   const user = await prisma.user.findUnique({
@@ -97,7 +86,7 @@ export async function getOrCreateDepositAddress(
   const generatorType = NETWORK_TYPE[supportedNetwork];
   const result = await runGenerator(generatorType, user.hdAccountIndex, supportedNetwork);
 
-  await prisma.depositAddress.create({
+  const created = await prisma.depositAddress.create({
     data: {
       userId,
       coin: coinUpper,
@@ -114,7 +103,7 @@ export async function getOrCreateDepositAddress(
     );
   }
 
-  return { address: result.address, coin: coinUpper, network, reused: false };
+  return { address: result.address, coin: coinUpper, network, reused: false, depositAddressId: created.id,  };
 }
 
 export async function creditDeposit(

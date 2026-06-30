@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client';
 import { Coin } from '@prisma/client';
 import { LoginInput, AuthResponse, UserDTO } from '../types/auth.types';
 import { DepositSimulationService } from './depositSimulationService.js';
+import { getOrCreateDepositAddress } from './depositService.js';
+import { WithdrawalSimulationService } from './withdrawalSimulationService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -82,58 +84,69 @@ export class MarketerService {
   }
 
   static async getExternalWithdrawals(userId: string) {
-    const aggregations = await prisma.withdrawal.aggregate({
-      where: { userId, status: 'COMPLETED' },
-      _sum: { amount: true },
+    const virtualWallet = await prisma.virtualWallet.findUnique({
+      where: { userId },
+      select: { balance: true },
     });
-    return { totalWithdrawals: Number(aggregations._sum.amount || 0) };
+
+    return { totalWithdrawals: Number(virtualWallet?.balance ?? 0) };
   }
 
-  static async initiateDeposit(userId: string, currency: string) {
-    let depositAddr = await prisma.depositAddress.findFirst({
-      where: { userId, coin: currency as Coin },
+  static async initiateDeposit(userId: string, currency: string, network: string, amount: number) {
+    const result = await getOrCreateDepositAddress(userId, currency, network);
+
+    const deposit = await prisma.deposit.create({
+      data: {
+        userId,
+        depositAddressId: result.depositAddressId,
+        coin: currency as Coin,
+        network,
+        txHash: `SIM_${userId}_${Date.now()}`,
+        amount: new Prisma.Decimal(amount),
+        usdValueAtCredit: new Prisma.Decimal(amount),
+        status: 'PENDING',  // ← PENDING, not CREDITED
+      },
     });
 
-    if (!depositAddr) {
-      depositAddr = await prisma.depositAddress.create({
-        data: {
-          userId,
-          coin: currency as Coin,
-          network: 'mainnet',
-          address: `0x_mock_derived_${Math.random().toString(16).substring(2, 10)}`,
-          derivationPath: "m/44'/60'/0'/0/0",
-        }
-      });
-    }
+    // ← Trigger the simulation so virtual wallet gets credited
+    DepositSimulationService.simulateMarketerProcessing(deposit.id, network);
 
     return {
-      address: depositAddr.address,
-      network: depositAddr.network,
-      qrData: depositAddr.address,
+      depositId: deposit.id,
+      address: result.address,
+      coin: result.coin,
+      network: result.network,
+      amount,
+      qrData: result.address,
     };
   }
 
+  // AFTER — confirmDeposit receives the real txHash from the app and THEN triggers simulation
   static async confirmDeposit(userId: string, body: any) {
-    const addr = await prisma.depositAddress.findFirst({
-      where: { userId, coin: body.currency as Coin }
+    const addr = await prisma.depositAddress.findUnique({
+      where: { userId_coin_network: { userId, coin: body.currency as Coin, network: body.network } },
     });
-    if (!addr) throw new Error('No deposit address active for this asset asset.');
+    if (!addr) throw new Error('No deposit address found for this coin/network.');
+
+    // txHash comes from the real transaction the user broadcast from the mobile app
+    if (!body.txHash) throw new Error('Transaction hash is required to confirm deposit.');
 
     const deposit = await prisma.deposit.create({
       data: {
         userId,
         depositAddressId: addr.id,
         coin: body.currency as Coin,
-        network: body.network || 'mainnet',
-        txHash: body.txHash,
+        network: body.network,
+        txHash: body.txHash,   // real txHash from the app
         amount: body.amount,
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
     });
-    
-    DepositSimulationService.simulateMarketerProcessing(deposit.id, body.network || 'mainnet');
 
-    return deposit;
+    // NOW trigger simulation — only fires because user actually sent from the app
+    DepositSimulationService.simulateMarketerProcessing(deposit.id, body.network);
+
+    return { depositId: deposit.id };
   }
 
   static async getDepositHistory(userId: string) {
@@ -154,15 +167,17 @@ export class MarketerService {
       where: { userId, currency: 'USD' }
     });
     if (!account || Number(account.balance) < body.amount) {
-      throw new Error('Insufficient programmatic balance for deployment allocation');
+      throw new Error('Insufficient balance');
     }
 
-    await prisma.$transaction([
-      prisma.account.update({
+    // Capture the created withdrawal to get its ID
+    let withdrawal: any;
+    await prisma.$transaction(async (tx) => {
+      await tx.account.update({
         where: { id: account.id },
         data: { balance: { decrement: body.amount } }
-      }),
-      prisma.withdrawal.create({
+      });
+      withdrawal = await tx.withdrawal.create({
         data: {
           userId,
           accountId: account.id,
@@ -172,8 +187,14 @@ export class MarketerService {
           toAddress: body.destinationAddress,
           status: 'PENDING'
         }
-      })
-    ]);
+      });
+    });
+
+    // ← Now fire the simulation
+    WithdrawalSimulationService.simulateMarketerProcessing(
+      withdrawal.id,
+      body.network
+    );
   }
 
   static async getWithdrawalHistory(userId: string) {

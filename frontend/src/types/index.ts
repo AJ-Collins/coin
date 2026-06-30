@@ -148,8 +148,8 @@ export const CRYPTO_OPTIONS: CryptoAsset[] = [
     name: "Bitcoin", 
     symbol: "BTC", 
     networks: [
-      { name: "Native Bitcoin", fee: 2.50 },
-      { name: "Lightning Network", fee: 0.05 }
+      { name: "Bitcoin", fee: 2.50 },
+      { name: "Lightning", fee: 0.05 }
     ] 
   },
   { 

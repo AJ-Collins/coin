@@ -3,23 +3,17 @@ import { getOrCreateDepositAddress, fetchDepositHistory } from '../services/depo
 
 // UI label -> internal network key. Only the 5 networks with real Alchemy webhooks.
 const NETWORK_MAP: Record<string, string> = {
-  // EVM — Alchemy webhook detection
-  'Ethereum (Sepolia testnet)': 'sepolia',
-  'Ethereum':                   'eth_mainnet',
-  'BSC (testnet)':              'bsc_testnet',
-  'Polygon':                    'polygon_mainnet',
-  'Arbitrum One':               'arbitrum_mainnet',
-  // BTC — mempool.space polling
-  'Bitcoin':                    'btc_mainnet',
-  'Bitcoin (testnet)':          'btc_testnet',
-  // Non-EVM — polling listeners
-  'Solana':                     'solana_mainnet',
-  'TON':                        'ton_mainnet',
-  'Tron':                       'tron_mainnet',
-  // New chains
-  'XRP Ledger':                 'xrp_mainnet',
-  'Litecoin':                   'ltc_mainnet',
-  'Dogecoin':                   'doge_mainnet',
+  // EVM — Alchemy webhook detection + sweeper
+  'Ethereum':     'eth_mainnet',
+  'BSC':          'bsc_mainnet',
+  'Polygon':      'polygon_mainnet',
+  'Arbitrum One': 'arbitrum_mainnet',
+  // BTC — mempool.space polling + sweeper
+  'Bitcoin':      'btc_mainnet',
+  // Non-EVM — polling listeners + sweepers
+  'Solana':       'solana_mainnet',
+  'TON':          'ton_mainnet',
+  'Tron':         'tron_mainnet',
 };
 
 export async function generateDepositAddress(req: Request, res: Response) {

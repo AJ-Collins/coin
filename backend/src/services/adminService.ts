@@ -1,53 +1,53 @@
-import { Passkey } from "@prisma/client";
+import { Passkey, Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import speakeasy from 'speakeasy';
 import bcrypt from 'bcryptjs';
 import { encrypt, decrypt } from '../utils/crypto.js';
 import { clearConfigCache } from '../utils/configLoader.js';
+import { generateDepositAddress } from '../utils/addressGenerator.js';
+import { calculateGasFee } from '../utils/gasFees.js';
 
 
 // Canonical list of all configurable keys with metadata
 export const SYSTEM_CONFIG_DEFINITIONS = [
   // EVM
-  { key: 'HOT_WALLET_ADDRESS',        label: 'EVM Hot Wallet Address',        group: 'EVM',      isSensitive: false },
-  { key: 'HOT_WALLET_PRIVATE_KEY',    label: 'EVM Hot Wallet Private Key',    group: 'EVM',      isSensitive: true  },
-  { key: 'SEPOLIA_RPC',               label: 'Sepolia RPC URL',               group: 'EVM',      isSensitive: false },
-  { key: 'ETH_MAINNET_RPC',           label: 'ETH Mainnet RPC URL',           group: 'EVM',      isSensitive: false },
-  { key: 'BSC_TESTNET_RPC',           label: 'BSC Testnet RPC URL',           group: 'EVM',      isSensitive: false },
-  { key: 'POLYGON_MAINNET_RPC',       label: 'Polygon Mainnet RPC URL',       group: 'EVM',      isSensitive: false },
-  { key: 'ARBITRUM_MAINNET_RPC',      label: 'Arbitrum Mainnet RPC URL',      group: 'EVM',      isSensitive: false },
+  { key: 'HOT_WALLET_ADDRESS',          label: 'EVM Hot Wallet Address',          group: 'EVM',       isSensitive: false },
+  { key: 'HOT_WALLET_PRIVATE_KEY',      label: 'EVM Hot Wallet Private Key',      group: 'EVM',       isSensitive: true  },
+  { key: 'ETH_MAINNET_RPC',             label: 'ETH Mainnet RPC URL',             group: 'EVM',       isSensitive: false },
+  { key: 'BSC_MAINNET_RPC',             label: 'BSC Mainnet RPC URL',             group: 'EVM',       isSensitive: false },
+  { key: 'POLYGON_MAINNET_RPC',         label: 'Polygon Mainnet RPC URL',         group: 'EVM',       isSensitive: false },
+  { key: 'ARBITRUM_MAINNET_RPC',        label: 'Arbitrum Mainnet RPC URL',        group: 'EVM',       isSensitive: false },
   // Token Contracts
-  { key: 'SEPOLIA_USDT_CONTRACT',     label: 'Sepolia USDT Contract',         group: 'CONTRACTS', isSensitive: false },
-  { key: 'SEPOLIA_USDC_CONTRACT',     label: 'Sepolia USDC Contract',         group: 'CONTRACTS', isSensitive: false },
-  { key: 'BSC_TESTNET_USDT_CONTRACT', label: 'BSC Testnet USDT Contract',     group: 'CONTRACTS', isSensitive: false },
-  { key: 'BSC_TESTNET_USDC_CONTRACT', label: 'BSC Testnet USDC Contract',     group: 'CONTRACTS', isSensitive: false },
-  { key: 'POLYGON_USDT_CONTRACT',     label: 'Polygon USDT Contract',         group: 'CONTRACTS', isSensitive: false },
-  { key: 'POLYGON_USDC_CONTRACT',     label: 'Polygon USDC Contract',         group: 'CONTRACTS', isSensitive: false },
-  { key: 'ARBITRUM_USDT_CONTRACT',    label: 'Arbitrum USDT Contract',        group: 'CONTRACTS', isSensitive: false },
-  { key: 'ARBITRUM_USDC_CONTRACT',    label: 'Arbitrum USDC Contract',        group: 'CONTRACTS', isSensitive: false },
+  { key: 'ETH_MAINNET_USDT_CONTRACT',   label: 'ETH Mainnet USDT Contract',       group: 'CONTRACTS', isSensitive: false },
+  { key: 'ETH_MAINNET_USDC_CONTRACT',   label: 'ETH Mainnet USDC Contract',       group: 'CONTRACTS', isSensitive: false },
+  { key: 'BSC_MAINNET_USDT_CONTRACT',   label: 'BSC Mainnet USDT Contract',       group: 'CONTRACTS', isSensitive: false },
+  { key: 'BSC_MAINNET_USDC_CONTRACT',   label: 'BSC Mainnet USDC Contract',       group: 'CONTRACTS', isSensitive: false },
+  { key: 'POLYGON_USDT_CONTRACT',       label: 'Polygon USDT Contract',           group: 'CONTRACTS', isSensitive: false },
+  { key: 'POLYGON_USDC_CONTRACT',       label: 'Polygon USDC Contract',           group: 'CONTRACTS', isSensitive: false },
+  { key: 'ARBITRUM_USDT_CONTRACT',      label: 'Arbitrum USDT Contract',          group: 'CONTRACTS', isSensitive: false },
+  { key: 'ARBITRUM_USDC_CONTRACT',      label: 'Arbitrum USDC Contract',          group: 'CONTRACTS', isSensitive: false },
   // BTC
-  { key: 'HOT_WALLET_BTC_ADDRESS',    label: 'BTC Hot Wallet Address',        group: 'BTC',      isSensitive: false },
+  { key: 'HOT_WALLET_BTC_ADDRESS',      label: 'BTC Hot Wallet Address',          group: 'BTC',       isSensitive: false },
   // SOL
-  { key: 'HELIUS_RPC_URL',            label: 'Helius RPC URL',                group: 'SOL',      isSensitive: false },
-  { key: 'HOT_WALLET_SOL_ADDRESS',    label: 'SOL Hot Wallet Address',        group: 'SOL',      isSensitive: false },
+  { key: 'HELIUS_RPC_URL',              label: 'Helius RPC URL',                  group: 'SOL',       isSensitive: false },
+  { key: 'HOT_WALLET_SOL_ADDRESS',      label: 'SOL Hot Wallet Address',          group: 'SOL',       isSensitive: false },
   // TON
-  { key: 'TONCENTER_API_URL',         label: 'TONCenter API URL',             group: 'TON',      isSensitive: false },
-  { key: 'TONCENTER_API_KEY',         label: 'TONCenter API Key',             group: 'TON',      isSensitive: true  },
-  { key: 'HOT_WALLET_TON_ADDRESS',    label: 'TON Hot Wallet Address',        group: 'TON',      isSensitive: false },
+  { key: 'TONCENTER_API_URL',           label: 'TONCenter API URL',               group: 'TON',       isSensitive: false },
+  { key: 'TONCENTER_API_KEY',           label: 'TONCenter API Key',               group: 'TON',       isSensitive: true  },
+  { key: 'HOT_WALLET_TON_ADDRESS',      label: 'TON Hot Wallet Address',          group: 'TON',       isSensitive: false },
   // TRON
-  { key: 'TRON_RPC',                  label: 'Tron RPC URL',                  group: 'TRON',     isSensitive: false },
-  { key: 'TRONGRID_API_KEY',          label: 'TronGrid API Key',              group: 'TRON',     isSensitive: true  },
-  { key: 'HOT_WALLET_TRX_ADDRESS',    label: 'TRX Hot Wallet Address',        group: 'TRON',     isSensitive: false },
+  { key: 'TRON_RPC',                    label: 'Tron RPC URL',                    group: 'TRON',      isSensitive: false },
+  { key: 'TRONGRID_API_KEY',            label: 'TronGrid API Key',                group: 'TRON',      isSensitive: true  },
+  { key: 'HOT_WALLET_TRX_ADDRESS',      label: 'TRX Hot Wallet Address',          group: 'TRON',      isSensitive: false },
   // HD Wallet
-  { key: 'MASTER_MNEMONIC',           label: 'Master Mnemonic (HD Wallet)',   group: 'HD_WALLET', isSensitive: true },
+  { key: 'MASTER_MNEMONIC',             label: 'Master Mnemonic (HD Wallet)',     group: 'HD_WALLET', isSensitive: true  },
   // Alchemy
-  { key: 'ALCHEMY_AUTH_TOKEN',        label: 'Alchemy Auth Token',            group: 'API_KEYS', isSensitive: true  },
-  { key: 'ALCHEMY_SIGNING_KEY',       label: 'Alchemy Signing Key',           group: 'API_KEYS', isSensitive: true  },
-  { key: 'ALCHEMY_WEBHOOK_SEPOLIA',   label: 'Alchemy Webhook — Sepolia',     group: 'API_KEYS', isSensitive: false },
-  { key: 'ALCHEMY_WEBHOOK_ETH_MAINNET', label: 'Alchemy Webhook — ETH Mainnet', group: 'API_KEYS', isSensitive: false },
-  { key: 'ALCHEMY_WEBHOOK_BSC_TESTNET', label: 'Alchemy Webhook — BSC Testnet', group: 'API_KEYS', isSensitive: false },
-  { key: 'ALCHEMY_WEBHOOK_POLYGON',   label: 'Alchemy Webhook — Polygon',     group: 'API_KEYS', isSensitive: false },
-  { key: 'ALCHEMY_WEBHOOK_ARBITRUM',  label: 'Alchemy Webhook — Arbitrum',    group: 'API_KEYS', isSensitive: false },
+  { key: 'ALCHEMY_AUTH_TOKEN',          label: 'Alchemy Auth Token',              group: 'API_KEYS',  isSensitive: true  },
+  { key: 'ALCHEMY_SIGNING_KEY',         label: 'Alchemy Signing Key',             group: 'API_KEYS',  isSensitive: true  },
+  { key: 'ALCHEMY_WEBHOOK_ETH_MAINNET', label: 'Alchemy Webhook — ETH Mainnet',  group: 'API_KEYS',  isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_BSC_MAINNET', label: 'Alchemy Webhook — BSC Mainnet',  group: 'API_KEYS',  isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_POLYGON',     label: 'Alchemy Webhook — Polygon',      group: 'API_KEYS',  isSensitive: false },
+  { key: 'ALCHEMY_WEBHOOK_ARBITRUM',    label: 'Alchemy Webhook — Arbitrum',     group: 'API_KEYS',  isSensitive: false },
 ] as const;
 
 export type SystemConfigKey = typeof SYSTEM_CONFIG_DEFINITIONS[number]['key'];
@@ -338,6 +338,9 @@ export class AdminService {
           where: { type: 'REAL' },
           select: { balance: true, currency: true },
         },
+        virtualWallet: {
+          select: { balance: true },
+        },
       },
     });
 
@@ -348,6 +351,7 @@ export class AdminService {
       referralRate: Number(m.referralRate),
       referrals: m.referredUsers.length,
       earnings: Number(m.accounts[0]?.balance ?? 0),
+      accountBalance: Number(m.virtualWallet?.balance ?? 0),
       currency: m.accounts[0]?.currency ?? 'USD',
       createdAt: m.createdAt,
     }));
@@ -679,10 +683,10 @@ static async manualCreditDeposit(data: {
   const { ethers } = await import('ethers');
 
   const RPC_MAP: Record<string, string> = {
-    sepolia:          process.env.SEPOLIA_RPC!,
     eth_mainnet:      process.env.ETH_MAINNET_RPC!,
-    bsc_testnet:      process.env.BSC_TESTNET_RPC!,
     bsc_mainnet:      process.env.BSC_MAINNET_RPC!,
+    polygon_mainnet:  process.env.POLYGON_MAINNET_RPC!,
+    arbitrum_mainnet: process.env.ARBITRUM_MAINNET_RPC!,
   };
 
   let foundTx: any = null;
@@ -755,8 +759,8 @@ static async manualCreditDeposit(data: {
   };
 }
 
-// System settings configs
-static async getSystemConfigs() {
+  // System settings configs
+  static async getSystemConfigs() {
     const rows = await prisma.systemConfig.findMany();
     const rowMap = new Map(rows.map(r => [r.key, r]));
 
@@ -836,6 +840,70 @@ static async getSystemConfigs() {
     await prisma.user.update({
       where: { id: userId },
       data: { twoFactorEnabled: true },
+    });
+  }
+
+  static async setMarketerPayout(marketerId: string, amount: number) {
+    const user = await prisma.user.findUnique({ where: { id: marketerId } });
+    if (!user) throw new Error('User not found');
+    if (user.role !== 'MARKETER') throw new Error('User is not a marketer');
+
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    const newBalance = new Prisma.Decimal(amount);
+
+    return prisma.$transaction(async (tx) => {
+      const walletRows = await tx.$queryRaw<{ id: string; balance: Prisma.Decimal }[]>`
+        SELECT id, balance FROM "VirtualWallet" WHERE "userId" = ${marketerId} FOR UPDATE
+      `;
+
+      let walletId = walletRows[0]?.id;
+      const previousBalance = walletRows[0]?.balance ?? new Prisma.Decimal(0);
+
+      if (!walletId) {
+        const created = await tx.virtualWallet.create({
+          data: { userId: marketerId, balance: new Prisma.Decimal(0) },
+        });
+        walletId = created.id;
+      }
+
+      const updatedWallet = await tx.virtualWallet.update({
+        where: { id: walletId },
+        data: { balance: newBalance },
+      });
+
+      await tx.virtualWalletTransaction.create({
+        data: {
+          walletId,
+          type: 'CREDIT',
+          amount: newBalance,
+          balanceAfter: updatedWallet.balance,
+          description: `Admin payout set (previous balance $${previousBalance})`,
+          referenceId: marketerId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: marketerId,
+          action: 'ADMIN_MARKETER_PAYOUT',
+          metadata: JSON.stringify({
+            amount,
+            previousBalance: previousBalance.toString(),
+            newWalletBalance: updatedWallet.balance.toString(),
+            finalizedAt: new Date().toISOString(),
+          }),
+        },
+      });
+
+      return {
+        walletId,
+        setAmount: amount,
+        previousBalance: Number(previousBalance),
+        newBalance: Number(updatedWallet.balance),
+      };
     });
   }
 }

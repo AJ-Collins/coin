@@ -43,22 +43,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      JWT_SECRET: ${JWT_SECRET}
-      ALCHEMY_AUTH_TOKEN: ${ALCHEMY_AUTH_TOKEN}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_SECURE: ${SMTP_SECURE}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      APP_NAME: ${APP_NAME}
-      FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "5000:5000"
     command: sh -c "npx prisma migrate deploy && node dist/server.js"
@@ -81,13 +71,12 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
-      DEPOSIT_WORKER_CONCURRENCY: ${DEPOSIT_WORKER_CONCURRENCY:-10}
     command: node dist/workers/index.js
 
   sweeper-worker:
@@ -102,12 +91,12 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/sweeperIndex.js
 
   listener-worker:
@@ -122,12 +111,12 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/listenerIndex.js
 
   probot-worker:
@@ -141,12 +130,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY}
     command: node dist/workers/proBotWorker.js
 
 volumes:

@@ -443,4 +443,21 @@ static async updateWithdrawalStatus(req: Request, res: Response) {
       res.status(status).json({ error: e.message });
     }
   }
+
+  static async setMarketerPayout(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body;
+
+      if (amount === undefined || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ error: 'amount must be a positive number' });
+      }
+
+      const result = await AdminService.setMarketerPayout(id, Number(amount));
+      res.json({ success: true, withdrawal: result });
+    } catch (e: any) {
+      const status = e.message.includes('not found') ? 404 : 500;
+      res.status(status).json({ error: e.message });
+    }
+  }
 }

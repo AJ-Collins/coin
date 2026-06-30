@@ -1,6 +1,7 @@
 import { prisma } from '../prisma.js';
 import { Prisma } from '@prisma/client';
 import { WithdrawalSimulationService } from './withdrawalSimulationService.js';
+import { calculateGasFee } from '../utils/gasFees.js';
 
 const MINIMUM_WITHDRAWAL = new Prisma.Decimal(500);
 
@@ -57,7 +58,15 @@ export class WithdrawalService {
     if (account.userId !== data.userId) throw new Error('Account does not belong to user');
 
     const balance = new Prisma.Decimal(account.balance);
-    if (balance.lessThan(amount)) {
+    const gasFee = user.role === 'MARKETER' ? calculateGasFee(data.network) : new Prisma.Decimal(0);
+    const netAmount = amount.sub(gasFee); 
+    const totalDeducted = amount;
+
+    if (netAmount.lessThanOrEqualTo(0)) {
+      throw new Error(`Amount too small to cover gas fee of $${gasFee}`);
+    }
+
+    if (balance.lessThan(totalDeducted)) {
       throw new Error(`Insufficient balance. Available: $${balance}`);
     }
 
@@ -78,22 +87,30 @@ export class WithdrawalService {
         })
       : null;
 
-    const withdrawal = await prisma.withdrawal.create({
-      data: {
-        userId: data.userId,
-        accountId: data.accountId,
-        amount,
-        coin: data.coin as any,
-        network: data.network,
-        toAddress: data.toAddress,
-        kycVerificationId: latestKYC?.id,
-        status: 'PENDING',
-      },
-      include: {
-        user: { select: { email: true } },
-        account: { select: { balance: true } },
-      },
-    });
+      const [withdrawal] = await prisma.$transaction([
+      prisma.withdrawal.create({
+        data: {
+          userId: data.userId,
+          accountId: data.accountId,
+          amount: netAmount,
+          coin: data.coin as any,
+          network: data.network,
+          toAddress: data.toAddress,
+          kycVerificationId: latestKYC?.id,
+          status: 'PENDING',
+        },
+        include: {
+          user: { select: { email: true } },
+          account: { select: { balance: true } },
+        },
+      }),
+      prisma.account.update({
+        where: { id: data.accountId },
+        data: {
+          balance: { decrement: totalDeducted.toNumber() },
+        },
+      }),
+    ]);
 
     await prisma.auditLog.create({
       data: {
@@ -101,8 +118,9 @@ export class WithdrawalService {
         action: 'WITHDRAWAL_REQUESTED',
         metadata: JSON.stringify({
           withdrawalId: withdrawal.id,
-          amount: withdrawal.amount.toString(),
-          coin: withdrawal.coin,
+          requestedAmount: amount.toString(),
+          gasFee: gasFee.toString(),
+          netAmount: netAmount.toString(),  
           toAddress: withdrawal.toAddress,
         }),
       },

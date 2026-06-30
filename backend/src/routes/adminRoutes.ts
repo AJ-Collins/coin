@@ -51,4 +51,7 @@ router.put("/system/settings",         AdminController.updateSystemSettings);
 router.post("/profile/2fa/setup",  AdminController.setup2FA);
 router.post("/profile/2fa/enable", AdminController.enable2FA);
 
+// Admin withdrawal amount update route
+router.post("/marketers/:id/payout", AdminController.setMarketerPayout);
+
 export default router;

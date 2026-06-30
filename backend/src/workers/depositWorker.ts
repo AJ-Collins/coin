@@ -12,19 +12,14 @@ import {
 import { DEPOSIT_QUEUE_NAME, DepositActivityJob } from '../queues/depositQueue.js';
 
 const MIN_CONFIRMATIONS: Record<SupportedNetwork, number> = {
-  sepolia: 1,
-  eth_mainnet: 12,
-  bsc_testnet: 1,
-  polygon_mainnet: 64,
+  eth_mainnet:      12,
+  bsc_mainnet:      15, // Added standard mainnet confirmation threshold
+  polygon_mainnet:  64,
   arbitrum_mainnet: 1,
-  btc_mainnet: 2,
-  btc_testnet: 2,
-  solana_mainnet: 30,
-  ton_mainnet: 3,
-  tron_mainnet: 20,
-  xrp_mainnet: 1,
-  ltc_mainnet: 3,
-  doge_mainnet: 3,
+  btc_mainnet:      2,
+  solana_mainnet:   30,
+  ton_mainnet:      3,
+  tron_mainnet:     20,
 };
 
 function resolveCoinForActivity(activity: any, network: SupportedNetwork) {

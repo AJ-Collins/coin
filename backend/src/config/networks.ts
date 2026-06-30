@@ -1,17 +1,12 @@
 export const SUPPORTED_NETWORKS = [
-  'sepolia',
   'eth_mainnet',
-  'bsc_testnet',
+  'bsc_mainnet',
   'polygon_mainnet',
   'arbitrum_mainnet',
   'btc_mainnet',
-  'btc_testnet',
   'solana_mainnet',
   'ton_mainnet',
   'tron_mainnet',
-  'xrp_mainnet',
-  'ltc_mainnet',
-  'doge_mainnet',
 ] as const;
 
 export type SupportedNetwork = typeof SUPPORTED_NETWORKS[number];
@@ -21,46 +16,40 @@ export function isSupportedNetwork(n: string): n is SupportedNetwork {
 }
 
 export const NATIVE_COIN: Record<SupportedNetwork, string> = {
-  sepolia:          'ETH',
   eth_mainnet:      'ETH',
-  bsc_testnet:      'BNB',
+  bsc_mainnet:      'BNB',
   polygon_mainnet:  'MATIC',
   arbitrum_mainnet: 'ETH',
   btc_mainnet:      'BTC',
-  btc_testnet:      'BTC',
   solana_mainnet:   'SOL',
   ton_mainnet:      'TON',
   tron_mainnet:     'TRX',
-  xrp_mainnet:      'XRP',
-  ltc_mainnet:      'LTC',
-  doge_mainnet:     'DOGE',
 };
 
 // Alchemy covers EVM chains only
 export const ALCHEMY_NETWORK_MAP: Record<string, SupportedNetwork> = {
-  'ETH_SEPOLIA':   'sepolia',
   'ETH_MAINNET':   'eth_mainnet',
-  'BSC_TESTNET':   'bsc_testnet',
+  'BSC_MAINNET':   'bsc_mainnet',
   'MATIC_MAINNET': 'polygon_mainnet',
   'ARB_MAINNET':   'arbitrum_mainnet',
 };
 
 export const NETWORK_WEBHOOK_MAP: Partial<Record<SupportedNetwork, string>> = {
-  sepolia:          process.env.ALCHEMY_WEBHOOK_SEPOLIA,
   eth_mainnet:      process.env.ALCHEMY_WEBHOOK_ETH_MAINNET,
-  bsc_testnet:      process.env.ALCHEMY_WEBHOOK_BSC_TESTNET,
+  bsc_mainnet:      process.env.ALCHEMY_WEBHOOK_BSC_MAINNET,
   polygon_mainnet:  process.env.ALCHEMY_WEBHOOK_POLYGON,
   arbitrum_mainnet: process.env.ALCHEMY_WEBHOOK_ARBITRUM,
 };
 
 export const STABLECOIN_CONTRACTS: Partial<Record<SupportedNetwork, Record<string, { symbol: string; decimals: number }>>> = {
-  sepolia: {
-    [process.env.SEPOLIA_USDT_CONTRACT?.toLowerCase() || '']: { symbol: 'USDT', decimals: 6 },
-    [process.env.SEPOLIA_USDC_CONTRACT?.toLowerCase() || '']: { symbol: 'USDC', decimals: 6 },
+  eth_mainnet: {
+    [process.env.ETH_USDT_CONTRACT?.toLowerCase() || '']: { symbol: 'USDT', decimals: 6 },
+    [process.env.ETH_USDC_CONTRACT?.toLowerCase() || '']: { symbol: 'USDC', decimals: 6 },
   },
-  bsc_testnet: {
-    [process.env.BSC_TESTNET_USDT_CONTRACT?.toLowerCase() || '']: { symbol: 'USDT', decimals: 18 },
-    [process.env.BSC_TESTNET_USDC_CONTRACT?.toLowerCase() || '']: { symbol: 'USDC', decimals: 18 },
+  bsc_mainnet: {
+    // Note: BEP20 tokens on BSC natively use 18 decimals
+    [process.env.BSC_USDT_CONTRACT?.toLowerCase() || '']: { symbol: 'USDT', decimals: 18 },
+    [process.env.BSC_USDC_CONTRACT?.toLowerCase() || '']: { symbol: 'USDC', decimals: 18 },
   },
   polygon_mainnet: {
     [process.env.POLYGON_USDT_CONTRACT?.toLowerCase() || '']: { symbol: 'USDT', decimals: 6 },

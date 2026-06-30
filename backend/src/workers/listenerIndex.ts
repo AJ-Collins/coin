@@ -7,8 +7,10 @@ import { startTronListener }   from '../listeners/tron-listener.js';
 // (push-based), which is more reliable and faster than polling for EVM.
 // These listeners cover only the chains Alchemy doesn't support.
 
+// Bitcoin Mainnet Polling
 startBTCListener('btc_mainnet', 60_000);
-startBTCListener('btc_testnet', 60_000);
+
+// Non-EVM Production Listeners
 startSolanaListener(15_000);  // Helius free tier handles this rate fine
 startTONListener(30_000);     // Toncenter free tier: ~1 req/s, so 3 addresses/poll
 startTronListener(15_000);    // TronGrid free tier handles this rate fine

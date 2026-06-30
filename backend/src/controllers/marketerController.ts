@@ -1,6 +1,23 @@
 import { Request, Response } from 'express';
 import { MarketerService } from '../services/marketerService.js';
 
+const NETWORK_MAP: Record<string, string> = {
+  'Ethereum':     'eth_mainnet',
+  'BSC':          'bsc_mainnet',
+  'Polygon':      'polygon_mainnet',
+  'Arbitrum One': 'arbitrum_mainnet',
+  'Bitcoin':      'btc_mainnet',
+  'Solana':       'solana_mainnet',
+  'TON':          'ton_mainnet',
+  'Tron':         'tron_mainnet',
+  'BTC':          'btc_mainnet',
+  'ETH':          'eth_mainnet',
+  'BEP20':        'bsc_mainnet',
+  'TRC20':        'tron_mainnet',
+  'ERC20':        'eth_mainnet',
+  'SOL':          'solana_mainnet',
+};
+
 export class MarketerController {
     /**
      * Marketer-only login gate. Rejects any non-MARKETER role attempt.
@@ -44,7 +61,26 @@ export class MarketerController {
 
   static async initiateDeposit(req: Request, res: Response) {
     try {
-      const data = await MarketerService.initiateDeposit(req.user!.id, req.body.currency);
+      const { currency, network, amount } = req.body;
+
+      if (!currency || !network) {
+        res.status(400).json({ success: false, error: 'currency and network are required' });
+        return;
+      }
+
+      const internalNetwork = NETWORK_MAP[network];
+      if (!internalNetwork) {
+        res.status(400).json({ success: false, error: `Unsupported network: ${network}` });
+        return;
+      }
+
+      const data = await MarketerService.initiateDeposit(
+        req.user!.id,
+        currency,
+        internalNetwork,
+        Number(amount)
+      );
+
       res.json({ success: true, data });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

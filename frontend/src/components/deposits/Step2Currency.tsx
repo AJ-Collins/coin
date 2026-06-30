@@ -12,15 +12,15 @@ const getCryptoLogo = (symbol: string) =>
   `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${symbol.toLowerCase()}.png`;
 
 // Network strings must exactly match the keys in depositController NETWORK_MAP
+// Network strings must exactly match the keys in depositController NETWORK_MAP
 const CRYPTO_OPTIONS = [
   {
     id: "ETH",
     name: "Ethereum",
     symbol: "ETH",
     networks: [
-      { label: "Ethereum Mainnet",      value: "Ethereum" },
-      { label: "Arbitrum One",          value: "Arbitrum One" },
-      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+      { label: "Ethereum Mainnet",  value: "Ethereum" },
+      { label: "Arbitrum One",      value: "Arbitrum One" },
     ],
   },
   {
@@ -28,11 +28,10 @@ const CRYPTO_OPTIONS = [
     name: "Tether",
     symbol: "USDT",
     networks: [
-      // No Ethereum mainnet — USDT contract not configured there
-      { label: "Polygon",               value: "Polygon" },
-      { label: "Arbitrum One",          value: "Arbitrum One" },
-      { label: "BSC (testnet)",         value: "BSC (testnet)" },
-      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+      { label: "Ethereum Mainnet",  value: "Ethereum" },
+      { label: "BNB Smart Chain",   value: "BSC" },
+      { label: "Polygon",           value: "Polygon" },
+      { label: "Arbitrum One",      value: "Arbitrum One" },
     ],
   },
   {
@@ -40,11 +39,10 @@ const CRYPTO_OPTIONS = [
     name: "USD Coin",
     symbol: "USDC",
     networks: [
-      // Same as USDT — no Ethereum mainnet contract configured
-      { label: "Polygon",               value: "Polygon" },
-      { label: "Arbitrum One",          value: "Arbitrum One" },
-      { label: "BSC (testnet)",         value: "BSC (testnet)" },
-      { label: "Sepolia (testnet)",     value: "Ethereum (Sepolia testnet)" },
+      { label: "Ethereum Mainnet",  value: "Ethereum" },
+      { label: "BNB Smart Chain",   value: "BSC" },
+      { label: "Polygon",           value: "Polygon" },
+      { label: "Arbitrum One",      value: "Arbitrum One" },
     ],
   },
   {
@@ -52,7 +50,7 @@ const CRYPTO_OPTIONS = [
     name: "BNB",
     symbol: "BNB",
     networks: [
-      { label: "BNB Smart Chain (testnet)", value: "BSC (testnet)" },
+      { label: "BNB Smart Chain",   value: "BSC" },
     ],
   },
   {
@@ -60,7 +58,7 @@ const CRYPTO_OPTIONS = [
     name: "Polygon",
     symbol: "MATIC",
     networks: [
-      { label: "Polygon",               value: "Polygon" },
+      { label: "Polygon",           value: "Polygon" },
     ],
   },
   {
@@ -68,8 +66,7 @@ const CRYPTO_OPTIONS = [
     name: "Bitcoin",
     symbol: "BTC",
     networks: [
-      { label: "Bitcoin",               value: "Bitcoin" },
-      { label: "Bitcoin (testnet)",     value: "Bitcoin (testnet)" },
+      { label: "Bitcoin",           value: "Bitcoin" },
     ],
   },
   {
@@ -77,7 +74,7 @@ const CRYPTO_OPTIONS = [
     name: "Solana",
     symbol: "SOL",
     networks: [
-      { label: "Solana",                value: "Solana" },
+      { label: "Solana",            value: "Solana" },
     ],
   },
   {
@@ -85,7 +82,7 @@ const CRYPTO_OPTIONS = [
     name: "Toncoin",
     symbol: "TON",
     networks: [
-      { label: "TON",                   value: "TON" },
+      { label: "TON",               value: "TON" },
     ],
   },
   {
@@ -93,31 +90,7 @@ const CRYPTO_OPTIONS = [
     name: "TRON",
     symbol: "TRX",
     networks: [
-      { label: "Tron",                  value: "Tron" },
-    ],
-  },
-  {
-    id: "XRP",
-    name: "XRP",
-    symbol: "XRP",
-    networks: [
-      { label: "XRP Ledger",            value: "XRP Ledger" },
-    ],
-  },
-  {
-    id: "LTC",
-    name: "Litecoin",
-    symbol: "LTC",
-    networks: [
-      { label: "Litecoin",              value: "Litecoin" },
-    ],
-  },
-  {
-    id: "DOGE",
-    name: "Dogecoin",
-    symbol: "DOGE",
-    networks: [
-      { label: "Dogecoin",              value: "Dogecoin" },
+      { label: "Tron",              value: "Tron" },
     ],
   },
 ];

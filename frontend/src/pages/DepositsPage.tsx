@@ -12,9 +12,6 @@ import DepositHistory from "../components/deposits/DepositHistory";
 export default function DepositsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  // Determine if the logged-in account has isolated Marketer configurations
-  const isMarketer = user?.role === "MARKETER";
 
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState(60);
@@ -37,75 +34,44 @@ export default function DepositsPage() {
   const currency = liveAccount?.currency ?? user?.accounts?.find(a => a.type === "REAL")?.currency ?? "USD";
   const formattedBalance = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(balance);
 
-  // 2. Fully Aggregated & Normalized History Query
   const { data: history = [] } = useQuery<any[]>({
-    queryKey: ["deposit-history", user?.role],
+    queryKey: ["deposit-history"],
     queryFn: async () => {
-      const endpoint = isMarketer ? "/marketer/deposit/history" : "/deposit/history";
-      const response = await api.get(endpoint);
-      
+      const response = await api.get("/deposit/history");
+
       let rawHistory: any[] = [];
       if (Array.isArray(response.data)) {
         rawHistory = response.data;
-      } else if (response.data && response.data.data) {
+      } else if (response.data?.data) {
         rawHistory = Array.isArray(response.data.data.deposits)
           ? response.data.data.deposits
-          : Array.isArray(response.data.data) 
-            ? response.data.data 
+          : Array.isArray(response.data.data)
+            ? response.data.data
             : [];
       }
 
-      // Map-normalize fields to ensure UI presentation properties match uniformly
       return rawHistory.map((d: any) => ({
         ...d,
-        coin: d.coin || d.currency || "USD", 
+        coin: d.coin || d.currency || "USD",
       }));
     },
-    // Keep polling active until the backend completes its network confirmation delay
     refetchInterval: step === 3 && !depositConfirmed ? 2000 : false,
   });
 
   // 3. Complete conditional execution orchestration mutation block
   const createDepositMutation = useMutation({
     mutationFn: async (payload: { amount: number; currency: string; network: string }) => {
-      if (isMarketer) {
-        // Step A: Target Marketer isolated token allocation engine
-        const initRes = await api.post("/marketer/deposit/initiate", { currency: payload.currency });
-        const initData = initRes.data?.data || initRes.data;
-
-        const simulatedTxHash = `0x_sim_hash_${Math.random().toString(16).substring(2, 10)}`;
-
-        // Step B: Auto-Broadcast simulation trigger so it updates the DB in the background
-        const confirmRes = await api.post("/marketer/deposit/confirm", {
-          currency: payload.currency,
-          network: payload.network,
-          amount: payload.amount,
-          txHash: simulatedTxHash
-        });
-
-        // Extract the unique database record instance metadata returned from the backend
-        const confirmData = confirmRes.data?.data || confirmRes.data;
-
-        return {
-          address: initData.address,
-          coin: payload.currency,
-          network: initData.network || payload.network,
-          expiresInSeconds: 3600,
-          txHash: simulatedTxHash,
-          // 🧠 Store the actual unique DB row ID to clear out interceptor evaluation collisions
-          depositId: confirmData?.id || confirmData?.deposit?.id || null, 
-        };
-      } else {
-        // Standard flow pathway for normal platform accounts
-        const { data } = await api.post("/deposit/address", {
-          coin: payload.currency,
-          network: payload.network,
-        });
-        return data?.data || data;
-      }
+      const { data } = await api.post("/deposit/address", {
+        coin: payload.currency,
+        network: payload.network,
+      });
+      return data?.data || data;
     },
     onMutate: () => {
       setDepositStartedAt(new Date());
+      setDepositConfirmed(false);
+      setCreditedDeposit(null);
+      setPaymentDetails(null);
     },
     onSuccess: (data, variables) => {
       const CRYPTO_RATES: Record<string, number> = {
@@ -121,7 +87,7 @@ export default function DepositsPage() {
         network: data.network || variables.network,
         expiresInSeconds: data.expiresInSeconds ?? 3600,
         txHash: data.txHash || null,
-        depositId: data.depositId || null, // Pass forward unique ID
+        depositId: data.depositId || null,
       });
       setStep(3);
       queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
@@ -132,29 +98,21 @@ export default function DepositsPage() {
     },
   });
 
-  // 4. Automated Credit Status Interceptor
   useEffect(() => {
     if (step !== 3 || !paymentDetails || depositConfirmed || !depositStartedAt) return;
 
-    const credited = history.find((d: any) => {
-      const isSettled = d.status === "CREDITED" || d.status === "SWEPT";
-
-      // 🧠 For Marketers, check against the exact unique row ID created for this specific action
-      if (isMarketer && paymentDetails.depositId) {
-        return d.id === paymentDetails.depositId && isSettled;
-      }
-
-      // Fallback baseline verification for standard user payment flows
-      return d.coin === paymentDetails.currency && isSettled && new Date(d.createdAt) > depositStartedAt;
-    });
+    const credited = history.find((d: any) =>
+      d.coin === paymentDetails.currency &&
+      (d.status === "CREDITED" || d.status === "SWEPT") &&
+      new Date(d.createdAt) > depositStartedAt
+    );
 
     if (credited) {
       setCreditedDeposit(credited);
       setDepositConfirmed(true);
-      // Force account balance update right away
       queryClient.invalidateQueries({ queryKey: ["accountBalance"] });
     }
-  }, [history, step, paymentDetails, depositConfirmed, depositStartedAt, isMarketer, queryClient]);
+  }, [history, step, paymentDetails, depositConfirmed, depositStartedAt, queryClient]);
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 space-y-6">
@@ -169,7 +127,7 @@ export default function DepositsPage() {
       </div>
 
       {/* Core Card Containment Node */}
-      <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 relative overflow-hidden shadow-xl">
+      <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 relative shadow-xl">
         
         {/* Real-time Balancing Frame */}
         <div className="flex justify-between items-center border-b border-[#1a1f28] pb-4 mb-2">
@@ -190,7 +148,12 @@ export default function DepositsPage() {
         {step === 2 && (
           <Step2Currency
             amount={amount}
-            onBack={() => setStep(1)}
+            onBack={() => {
+              setStep(1)
+              setDepositConfirmed(false);
+              setCreditedDeposit(null);
+              setPaymentDetails(null);
+            }}
             isGenerating={createDepositMutation.isPending}
             onGenerate={(crypto, network) => {
               createDepositMutation.mutate({ amount, currency: crypto, network });

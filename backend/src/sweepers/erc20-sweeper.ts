@@ -27,20 +27,20 @@ async function sweepERC20(network: string, coin: string) {
   }
 
   const rpcMap: Record<string, string | null> = {
-    sepolia:          await getConfig('SEPOLIA_RPC'),
-    bsc_testnet:      await getConfig('BSC_TESTNET_RPC'),
+    eth_mainnet:      await getConfig('ETH_MAINNET_RPC'),
+    bsc_mainnet:      await getConfig('BSC_MAINNET_RPC'),
     polygon_mainnet:  await getConfig('POLYGON_MAINNET_RPC'),
     arbitrum_mainnet: await getConfig('ARBITRUM_MAINNET_RPC'),
   };
 
   const contractMap: Record<string, Record<string, string | null>> = {
-    sepolia: {
-      USDT: await getConfig('SEPOLIA_USDT_CONTRACT'),
-      USDC: await getConfig('SEPOLIA_USDC_CONTRACT'),
+    eth_mainnet: {
+      USDT: await getConfig('ETH_MAINNET_USDT_CONTRACT'),
+      USDC: await getConfig('ETH_MAINNET_USDC_CONTRACT'),
     },
-    bsc_testnet: {
-      USDT: await getConfig('BSC_TESTNET_USDT_CONTRACT'),
-      USDC: await getConfig('BSC_TESTNET_USDC_CONTRACT'),
+    bsc_mainnet: {
+      USDT: await getConfig('BSC_MAINNET_USDT_CONTRACT'),
+      USDC: await getConfig('BSC_MAINNET_USDC_CONTRACT'),
     },
     polygon_mainnet: {
       USDT: await getConfig('POLYGON_USDT_CONTRACT'),

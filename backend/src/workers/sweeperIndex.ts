@@ -5,20 +5,24 @@ import { startSOLSweeper }  from '../sweepers/solana-sweeper.js';
 import { startTONSweeper }  from '../sweepers/ton-sweeper.js';
 import { startTronSweeper } from '../sweepers/tron-sweeper.js';
 
+// Define which production EVM networks have active stablecoin sweepers
 const ERC20_NETWORKS: Record<string, string[]> = {
-  sepolia:          ['USDT', 'USDC'],
-  bsc_testnet:      ['USDT', 'USDC'],
+  eth_mainnet:      ['USDT', 'USDC'],
+  bsc_mainnet:      ['USDT', 'USDC'],
   polygon_mainnet:  ['USDT', 'USDC'],
   arbitrum_mainnet: ['USDT', 'USDC'],
 };
 
 const EVM_NETWORKS = [
-  'sepolia', 'eth_mainnet', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet',
+  'eth_mainnet', 
+  'bsc_mainnet', 
+  'polygon_mainnet', 
+  'arbitrum_mainnet',
 ];
 
 const INTERVAL = Number(process.env.SWEEP_INTERVAL_MS || 120_000);
 
-// EVM native (ETH/BNB/MATIC) + ERC20 (USDT/USDC)
+// Initialize EVM native (ETH/BNB/MATIC) + ERC20/BEP20 (USDT/USDC) sweepers
 for (const network of EVM_NETWORKS) {
   startEVMSweeper(network, INTERVAL);
   for (const coin of ERC20_NETWORKS[network] ?? []) {
@@ -26,11 +30,10 @@ for (const network of EVM_NETWORKS) {
   }
 }
 
-// BTC — mainnet + testnet run as separate sweeper instances
+// BTC — Production Mainnet only
 startBTCSweeper('btc_mainnet', INTERVAL);
-startBTCSweeper('btc_testnet', INTERVAL);
 
-// Non-EVM single-network chains
+// Non-EVM single-network mainnet chains
 startSOLSweeper(INTERVAL);
 startTONSweeper(INTERVAL);
 startTronSweeper(INTERVAL);

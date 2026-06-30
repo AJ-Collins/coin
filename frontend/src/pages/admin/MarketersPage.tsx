@@ -15,6 +15,7 @@ interface Marketer {
   referralRate: number;
   referrals: number;
   earnings: number;
+  accountBalance: number;
   currency: string;
   createdAt: string;
 }
@@ -24,6 +25,8 @@ export default function MarketersPage() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [rateModal, setRateModal] = useState<Marketer | null>(null);
   const [rateValue, setRateValue] = useState("");
+  const [amountModal, setAmountModal] = useState<{ withdrawalId: string; currentAmount: number } | null>(null);
+  const [amountValue, setAmountValue] = useState("");
 
   const { data: marketers = [], isLoading } = useQuery({
     queryKey: ["admin-marketers"],
@@ -55,6 +58,12 @@ export default function MarketersPage() {
     mutationFn: ({ id, rate }: { id: string; rate: number }) =>
       api.patch(`/admin/marketers/${id}/rate`, { referralRate: rate }),
     onSuccess: () => { invalidate(); setRateModal(null); },
+  });
+
+  const updateAmountMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount: number }) =>
+      api.post(`/admin/marketers/${id}/payout`, { amount }),
+    onSuccess: () => { invalidate(); setAmountModal(null); },
   });
 
   const openRateModal = (m: Marketer) => {
@@ -102,7 +111,7 @@ export default function MarketersPage() {
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Referrals</th>
               <th className="px-4 py-3">Rate</th>
-              <th className="px-4 py-3">Earnings</th>
+              <th className="px-4 py-3">App Balance</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 w-16"></th>
             </tr>
@@ -131,7 +140,7 @@ export default function MarketersPage() {
                   <td className="px-4 py-3 text-gray-300">{m.referrals.toLocaleString()}</td>
                   <td className="px-4 py-3 text-gray-300">{m.referralRate}%</td>
                   <td className="px-4 py-3 text-[#39ff88] font-semibold">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: m.currency }).format(m.earnings)}
+                    {new Intl.NumberFormat("en-US", { style: "currency", currency: m.currency }).format(m.accountBalance)}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded ${statusStyles[m.status] ?? statusStyles.ACTIVE}`}>
@@ -155,6 +164,15 @@ export default function MarketersPage() {
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white"
                           >
                             <Percent className="h-3.5 w-3.5 text-blue-400" /> Set Referral Rate
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAmountModal({ withdrawalId: m.id, currentAmount: m.accountBalance });
+                              setActiveMenuId(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white"
+                          >
+                            <span className="h-3.5 w-3.5 text-emerald-400">$</span> Update App Balance
                           </button>
                           <button
                             onClick={() => { toggleStatusMutation.mutate(m.id); setActiveMenuId(null); }}
@@ -207,6 +225,43 @@ export default function MarketersPage() {
               >
                 {updateRateMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Save Rate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {amountModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0d0f17] border border-[#1a1f28] w-full max-w-sm rounded-xl p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white">Update Withdrawal Amount</h3>
+            <p className="text-xs text-gray-400">
+              Current amount: <span className="text-white font-medium">${amountModal.currentAmount}</span>
+            </p>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                New Amount (USD)
+              </label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={amountValue}
+                onChange={e => setAmountValue(e.target.value)}
+                className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setAmountModal(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">
+                Cancel
+              </button>
+              <button
+                onClick={() => updateAmountMutation.mutate({ id: amountModal.withdrawalId, amount: parseFloat(amountValue) })}
+                disabled={updateAmountMutation.isPending || !amountValue || parseFloat(amountValue) <= 0}
+                className="bg-[#39ff88] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#5dffa1] flex items-center gap-2 disabled:opacity-50"
+              >
+                {updateAmountMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Update Amount
               </button>
             </div>
           </div>
