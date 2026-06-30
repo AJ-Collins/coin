@@ -6,7 +6,7 @@ import Footer from "../components/home/Footer";
 
 export default function DashboardPage() {
   return (
-    <div>
+    <div className="bg-[#090f1a]">
       <WelcomeStats />
       <TickerRibbon />
       <TrendingAssets />

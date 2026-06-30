@@ -32,8 +32,8 @@ export default function ForgotPasswordPage() {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 sm:px-16 lg:px-20 py-12 relative z-10 bg-[#0c0c16]">
         
         {/* Glow orbs matching login profile */}
-        <div className="absolute top-[15%] left-[-5%] w-[400px] h-[400px] bg-[#9b51e0] rounded-full blur-[140px] opacity-10 pointer-events-none" />
-        <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] bg-[#4fd1c5] rounded-full blur-[140px] opacity-7 pointer-events-none" />
+        <div className="absolute top-[15%] left-[-5%] w-[400px] h-[400px] bg-[#090f1a] rounded-full blur-[140px] opacity-10 pointer-events-none" />
+        <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] bg-[#22d3ee] rounded-full blur-[140px] opacity-7 pointer-events-none" />
 
         <div className="w-full max-w-md relative z-10">
           

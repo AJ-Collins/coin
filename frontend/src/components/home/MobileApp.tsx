@@ -176,14 +176,14 @@ export default function MobileApp() {
       <div className="flex flex-col items-center text-center mb-16">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#39ff88]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
             MOBILE APP
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">Full scalping power</span><br />
-          <span className="text-[#39ff88] drop-shadow-md">in your pocket.</span>
+          <span className="text-[#22d3ee] drop-shadow-md">in your pocket.</span>
         </h2>
         
         <p className="text-base sm:text-lg text-[#9ca3af] max-w-xl mx-auto font-light leading-relaxed">
@@ -194,7 +194,7 @@ export default function MobileApp() {
       {/* Phones Grid */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-8 lg:gap-20 mb-16 relative">
         {/* Glow effect behind phones */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#39ff88]/5 blur-[100px] rounded-full z-0 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#22d3ee]/5 blur-[100px] rounded-full z-0 pointer-events-none" />
         
         <div className="text-center relative z-10">
           <PhoneSignals />

@@ -60,7 +60,7 @@ export default function DashboardNav() {
                 to={to}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
-                    ? "bg-[#39ff88]/10 text-[#39ff88]"
+                    ? "bg-[#39ff88]/10 text-[#22d3ee]"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
@@ -74,7 +74,7 @@ export default function DashboardNav() {
         {/* Right side */}
         <div className="flex items-center gap-3 ml-auto">
           <div className="flex items-center gap-2 bg-[#0d0f17] border border-[#1a1f28] rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold">
-            <Wallet className="h-4 w-4 text-[#39ff88]" />
+            <Wallet className="h-4 w-4 text-[#22d3ee]" />
             {realBalance}
           </div>
           <Link to="/profile" className="text-gray-400 hover:text-white cursor-pointer">
@@ -110,7 +110,7 @@ export default function DashboardNav() {
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                       active
-                        ? "bg-[#39ff88]/10 text-[#39ff88]"
+                        ? "bg-[#39ff88]/10 text-[#22d3ee]"
                         : "text-gray-400 hover:text-white hover:bg-white/5"
                     }`}
                   >

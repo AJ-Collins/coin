@@ -70,8 +70,8 @@ const FEATURES = [
 
 // Re-mapped to custom hex values for a sharper "terminal" aesthetic
 const colorMap = {
-  emerald:{ bg: "bg-[#39ff88]/10", border: "border-[#39ff88]/20", icon: "text-[#39ff88]", tag: "text-[#39ff88]", glow: "hover:shadow-[0_0_20px_rgba(57,255,136,0.1)] hover:border-[#39ff88]/40" },
-  cyan:   { bg: "bg-[#00f0ff]/10", border: "border-[#00f0ff]/20", icon: "text-[#00f0ff]", tag: "text-[#00f0ff]", glow: "hover:shadow-[0_0_20px_rgba(0,240,255,0.1)] hover:border-[#00f0ff]/40" },
+  emerald:{ bg: "bg-[#39ff88]/10", border: "border-[#39ff88]/20", icon: "text-[#22d3ee]", tag: "text-[#39ff88]", glow: "hover:shadow-[0_0_20px_rgba(57,255,136,0.1)] hover:border-[#39ff88]/40" },
+  cyan:   { bg: "bg-[#00f0ff]/10", border: "border-[#00f0ff]/20", icon: "text-[#22d3ee]", tag: "text-[#00f0ff]", glow: "hover:shadow-[0_0_20px_rgba(0,240,255,0.1)] hover:border-[#00f0ff]/40" },
   pink:   { bg: "bg-[#ff4d6d]/10", border: "border-[#ff4d6d]/20", icon: "text-[#ff4d6d]", tag: "text-[#ff4d6d]", glow: "hover:shadow-[0_0_20px_rgba(255,77,109,0.1)] hover:border-[#ff4d6d]/40" },
   blue:   { bg: "bg-[#3b82f6]/10", border: "border-[#3b82f6]/20", icon: "text-[#3b82f6]", tag: "text-[#3b82f6]", glow: "hover:shadow-[0_0_20px_rgba(59,130,246,0.1)] hover:border-[#3b82f6]/40" },
   amber:  { bg: "bg-[#fbbf24]/10", border: "border-[#fbbf24]/20", icon: "text-[#fbbf24]", tag: "text-[#fbbf24]", glow: "hover:shadow-[0_0_20px_rgba(251,191,36,0.1)] hover:border-[#fbbf24]/40" },
@@ -85,14 +85,14 @@ export default function Features() {
       <div className="flex flex-col items-center text-center mb-20">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#39ff88]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
             WHY AISCALPINGPRO
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">Built for traders who</span><br />
-          <span className="text-[#39ff88] drop-shadow-md">refuse to be slow.</span>
+          <span className="text-[#22d3ee] drop-shadow-md">refuse to be slow.</span>
         </h2>
         
         <p className="text-base sm:text-lg text-[#9ca3af] max-w-xl mx-auto font-light leading-relaxed">

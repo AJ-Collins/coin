@@ -266,7 +266,7 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
           type="button"
           disabled={!selectedNetwork || isGenerating}
           onClick={() => selectedNetwork && onGenerate(selectedCrypto.id, selectedNetwork.value)}
-          className="w-2/3 bg-[#39ff88] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#5dffa1] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-2/3 bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3 rounded-xl hover:bg-[#67e8f9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <QrCode className="h-4 w-4" />
           {isGenerating ? "Generating..." : "Generate Address"}

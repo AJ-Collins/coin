@@ -53,7 +53,7 @@ export default function Step1Amount({ onNext, initialAmount }: Step1Props) {
             onClick={() => setAmount(amt.toFixed(2))}
             className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${
               parseFloat(amount) === amt
-                ? "bg-[#39ff88]/10 border-[#39ff88] text-[#39ff88]"
+                ? "bg-[#22d3ee]/10 border-[#22d3ee] text-[#22d3ee]"
                 : "bg-[#05070a] border-[#1a1f28] text-gray-400 hover:border-gray-700"
             }`}
           >
@@ -65,7 +65,7 @@ export default function Step1Amount({ onNext, initialAmount }: Step1Props) {
       <button
         type="submit"
         disabled={parseFloat(amount) < minDeposit || isNaN(parseFloat(amount))}
-        className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#5dffa1] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3 rounded-xl hover:bg-[#67e8f9] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Continue <ArrowRight className="h-4 w-4" />
       </button>

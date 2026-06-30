@@ -35,7 +35,7 @@ export default function CTABanner() {
           {/* CTA Button Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
             <Link to="/register" className="w-full sm:w-auto flex-1">
-              <button className="w-full bg-[#39ff88] text-black font-mono font-black text-xs uppercase tracking-widest px-8 py-4 rounded-sm hover:bg-[#2ed672] transition-colors shadow-[0_0_20px_rgba(57,255,136,0.2)] flex items-center justify-center gap-2 cursor-pointer">
+              <button className="w-full bg-[#22d3ee] text-[#090f1a] font-mono font-black text-xs uppercase tracking-widest px-8 py-4 rounded-sm hover:bg-[#67e8f9] transition-colors shadow-[0_0_20px_rgba(57,255,136,0.2)] flex items-center justify-center gap-2 cursor-pointer">
                 Get started
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="square" strokeLinejoin="miter" d="M14 5l7 7m0 0l-7 7m7-7H3" />

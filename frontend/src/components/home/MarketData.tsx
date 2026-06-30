@@ -73,14 +73,14 @@ export default function MarketData() {
       <div className="flex flex-col items-center text-center mb-16">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#39ff88]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
             LIVE MARKET FEED
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">Prices, volume & signals —</span><br />
-          <span className="text-[#39ff88] drop-shadow-md">streaming live in real-time.</span>
+          <span className="text-[#22d3ee] drop-shadow-md">streaming live in real-time.</span>
         </h2>
       </div>
 

@@ -10,7 +10,7 @@ export default function StepTracker({ currentStep }: StepTrackerProps) {
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
               currentStep >= step
-                ? "bg-[#39ff88] text-[#05070a] shadow-[0_0_12px_rgba(57,255,136,0.2)]"
+                ? "bg-[#22d3ee] text-[#05070a] shadow-[0_0_12px_rgba(57,255,136,0.2)]"
                 : "bg-[#1a1f28] text-gray-500 border border-[#252b38]"
             }`}
           >
@@ -19,7 +19,7 @@ export default function StepTracker({ currentStep }: StepTrackerProps) {
           {step < 3 && (
             <div
               className={`w-12 h-[2px] ml-3 transition-all duration-300 ${
-                currentStep > step ? "bg-[#39ff88]" : "bg-[#1a1f28]"
+                currentStep > step ? "bg-[#22d3ee]" : "bg-[#1a1f28]"
               }`}
             />
           )}

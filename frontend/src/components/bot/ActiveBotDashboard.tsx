@@ -446,7 +446,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => toggleStatusMutation.mutate(status === "running" ? "stopped" : "running")}
-              className={`h-9 px-4 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${status === "running" ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20" : "bg-[#39ff88] text-[#05070a] hover:bg-[#5dffa1]"}`}>
+              className={`h-9 px-4 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${status === "running" ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20" : "bg-[#22d3ee] text-[#090f1a] hover:bg-[#67e8f9]"}`}>
               {status === "running" ? <><Square className="h-3.5 w-3.5 fill-current" /> Stop</> : <><Play className="h-3.5 w-3.5 fill-current" /> Start</>}
             </button>
             <button onClick={() => deleteMutation.mutate()}
@@ -471,16 +471,16 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       </div>
 
       {status === "running" && (
-        <div className="relative bg-[#0d0f17] border border-[#39ff88]/30 rounded-2xl p-4 overflow-hidden shadow-[0_0_15px_rgba(57,255,136,0.05)]">
-          <div className="absolute inset-0 bg-[#39ff88]/5 animate-pulse pointer-events-none" />
+        <div className="relative bg-[#0d0f17] border border-[#22d3ee]/30 rounded-2xl p-4 overflow-hidden shadow-[0_0_15px_rgba(57,255,136,0.05)]">
+          <div className="absolute inset-0 bg-[#22d3ee]/5 animate-pulse pointer-events-none" />
           <div className="relative flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-[#39ff88] animate-pulse" />
-              <h3 className="text-[11px] font-black tracking-[0.2em] text-[#39ff88] uppercase">AI Bot Scalping Market</h3>
+              <Activity className="w-6 h-6 text-[#22d3ee] animate-pulse" />
+              <h3 className="text-[11px] font-black tracking-[0.2em] text-[#22d3ee] uppercase">AI Bot Scalping Market</h3>
             </div>
             <div className="flex items-center gap-1.5 bg-[#05070a] px-2 py-1 rounded-md border border-[#1a1f28]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#39ff88] animate-ping" />
-              <span className="text-[10px] font-mono text-[#39ff88]">CYCLE: {timeLeft}s</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#22d3ee] animate-ping" />
+              <span className="text-[10px] font-mono text-[#22d3ee]">CYCLE: {timeLeft}s</span>
             </div>
           </div>
           <div className="relative space-y-1.5">
@@ -489,7 +489,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
               <span className="text-white font-mono">{realProgressPercentage.toFixed(0)}%</span>
             </div>
             <div className="h-2 w-full bg-[#05070a] rounded-full overflow-hidden border border-[#1a1f28]">
-              <div className="h-full bg-gradient-to-r from-[#14231c] via-[#39ff88] to-[#ffffff] relative transition-all duration-1000 ease-linear" style={{ width: `${realProgressPercentage}%` }}>
+              <div className="h-full bg-gradient-to-r from-[#14231c] via-[#22d3ee] to-[#ffffff] relative transition-all duration-1000 ease-linear" style={{ width: `${realProgressPercentage}%` }}>
                 <div className="absolute right-0 top-0 bottom-0 w-2 bg-white blur-[2px] opacity-75" />
               </div>
             </div>

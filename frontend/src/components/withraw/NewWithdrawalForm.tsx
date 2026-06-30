@@ -261,7 +261,7 @@ export default function NewWithdrawalForm({
       <button
         type="submit"
         disabled={!isFormComplete || isSubmitting}
-        className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#5dffa1] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 relative z-0"
+        className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#67e8f9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 relative z-0"
       >
         {isSubmitting ? "Processing Submission..." : "Submit Withdrawal"}
       </button>

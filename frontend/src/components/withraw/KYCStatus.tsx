@@ -178,7 +178,7 @@ export default function KYCStatus({ onStatusChange }: KYCStatusProps) {
                 handleSubmitDocuments();
               }}
               disabled={isSubmitting || !frontFile || !backFile}
-              className="w-full bg-[#39ff88] text-[#05070a] font-bold text-xs py-2.5 rounded-lg hover:bg-[#5dffa1] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-xs py-2.5 rounded-lg hover:bg-[#67e8f9] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               <Upload className="h-4 w-4" />
               {isSubmitting ? "Uploading..." : currentStatus === "REJECTED" ? "Resubmit Documents" : "Submit Documents"}

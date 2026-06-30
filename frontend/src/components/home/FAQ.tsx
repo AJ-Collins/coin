@@ -74,14 +74,14 @@ export default function FAQ() {
       <div className="flex flex-col items-center text-center mb-16">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#fbbf24]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
             KNOWLEDGE BASE // FAQ
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">Frequently asked</span><br />
-          <span className="text-[#fbbf24] drop-shadow-md">queries, resolved.</span>
+          <span className="text-[#22d3ee] drop-shadow-md">queries, resolved.</span>
         </h2>
         
         <p className="text-base sm:text-lg text-[#9ca3af] max-w-xl mx-auto font-light leading-relaxed">

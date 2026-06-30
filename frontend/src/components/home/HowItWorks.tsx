@@ -47,14 +47,14 @@ export default function HowItWorks() {
       <div className="flex flex-col items-center text-center mb-20">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#fbbf24]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
             HOW IT WORKS
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">From signup to</span><br />
-          <span className="text-[#fbbf24] drop-shadow-md">first trade in minutes.</span>
+          <span className="text-[#22d3ee] drop-shadow-md">first trade in minutes.</span>
         </h2>
         
         <p className="text-base sm:text-lg text-[#9ca3af] max-w-xl mx-auto font-light leading-relaxed">

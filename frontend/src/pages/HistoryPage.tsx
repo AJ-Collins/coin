@@ -49,7 +49,7 @@ export default function HistoryPage() {
             onClick={() => setActiveTab("deposits")}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === "deposits"
-                ? "bg-[#1a1f28] text-[#39ff88] shadow-inner"
+                ? "bg-[#1a1f28] text-[#22d3ee] shadow-inner"
                 : "text-gray-400 hover:text-white"
             }`}
           >
@@ -62,7 +62,7 @@ export default function HistoryPage() {
             onClick={() => setActiveTab("withdrawals")}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === "withdrawals"
-                ? "bg-[#1a1f28] text-[#39ff88] shadow-inner"
+                ? "bg-[#1a1f28] text-[#22d3ee] shadow-inner"
                 : "text-gray-400 hover:text-white"
             }`}
           >

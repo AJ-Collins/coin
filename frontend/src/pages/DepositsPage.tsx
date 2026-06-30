@@ -167,8 +167,8 @@ export default function DepositsPage() {
 
         {step === 3 && depositConfirmed && (
           <div className="flex flex-col items-center gap-4 py-8 text-center animate-fadeIn">
-            <div className="w-16 h-16 rounded-full bg-[#14231c] border border-[#39ff88]/30 flex items-center justify-center">
-              <svg className="w-8 h-8 text-[#39ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 rounded-full bg-[#14231c] border border-[#22d3ee]/30 flex items-center justify-center">
+              <svg className="w-8 h-8 text-[#22d3ee]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -191,7 +191,7 @@ export default function DepositsPage() {
                 setCreditedDeposit(null);
                 queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
               }}
-              className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#5dffa1] transition-colors"
+              className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3 rounded-xl hover:bg-[#67e8f9] transition-colors"
             >
               Make Another Deposit
             </button>
