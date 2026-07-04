@@ -11,7 +11,7 @@
   --color-accent-cyan: #22d3ee;     /* brighter cyan */
   --color-accent-orange: #f6ad55;   /* kept — warm contrast anchor */
   --color-accent-red: #f87171;      /* slightly cooler red */
-  --color-accent-green: #34d399;    /* teal-green */
+  --color-accent-violet: #a78bfa;   /* brand violet */
 }
 :root {
   --bg-deep: #090f1a;
@@ -24,7 +24,7 @@
   --accent-cyan: #22d3ee;
   --accent-orange: #f6ad55;
   --accent-red: #f87171;
-  --accent-green: #34d399;
+  --accent-violet: #a78bfa;
 }
 * {
   scroll-behavior: smooth;
@@ -43,7 +43,7 @@ body {
     #3b82f6 10%,
     #60a5fa 30%,
     #22d3ee 50%,
-    #34d399 70%,
+    #a78bfa 70%,
     #60a5fa 90%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -66,7 +66,7 @@ body {
     #3b82f6 10%,
     #60a5fa 30%,
     #22d3ee 50%,
-    #34d399 70%,
+    #a78bfa 70%,
     #60a5fa 90%);
   background-clip: text;
   -webkit-background-clip: text;

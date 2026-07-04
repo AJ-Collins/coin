@@ -15,6 +15,7 @@ export default function DepositsPage() {
 
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState(60);
+  // const [amount, setAmount] = useState(60);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [depositConfirmed, setDepositConfirmed] = useState(false);
   const [depositStartedAt, setDepositStartedAt] = useState<Date | null>(null);
@@ -167,8 +168,8 @@ export default function DepositsPage() {
 
         {step === 3 && depositConfirmed && (
           <div className="flex flex-col items-center gap-4 py-8 text-center animate-fadeIn">
-            <div className="w-16 h-16 rounded-full bg-[#14231c] border border-[#22d3ee]/30 flex items-center justify-center">
-              <svg className="w-8 h-8 text-[#22d3ee]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 rounded-full bg-[#1a1428] border border-[#a78bfa]/30 flex items-center justify-center">
+              <svg className="w-8 h-8 text-[#a78bfa]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -177,7 +178,7 @@ export default function DepositsPage() {
               <p className="text-xs text-gray-400">Your balance has been updated successfully.</p>
             </div>
             <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl px-6 py-3">
-              <span className="text-[#39ff88] font-black text-xl font-mono">
+              <span className="text-[#a78bfa] font-black text-xl font-mono">
                 +${creditedDeposit ? Number(creditedDeposit.usdValueAtCredit || creditedDeposit.amount).toFixed(2) : "0.00"}
               </span>
               <p className="text-xs text-gray-500 mt-0.5">added to your account</p>
@@ -191,7 +192,7 @@ export default function DepositsPage() {
                 setCreditedDeposit(null);
                 queryClient.invalidateQueries({ queryKey: ["deposit-history"] });
               }}
-              className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3 rounded-xl hover:bg-[#67e8f9] transition-colors"
+              className="w-full bg-[#a78bfa] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#c4b5fd] transition-colors"
             >
               Make Another Deposit
             </button>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "../../lib/api";
 
 const statusStyles: Record<string, string> = {
-  COMPLETED: "bg-emerald-500/15 text-emerald-400",
+  COMPLETED: "bg-violet-500/15 text-violet-400",
   RUNNING:   "bg-amber-500/15 text-amber-400",
   STOPPED:   "bg-gray-500/15 text-gray-400",
 };
@@ -80,7 +80,7 @@ export default function TradesPage() {
             label: "Total Trades",
             value: stats?.total?.toLocaleString() ?? "—",
             icon: ArrowLeftRight,
-            color: "text-[#39ff88]",
+            color: "text-[#a78bfa]",
           },
           {
             label: "Today",
@@ -100,7 +100,7 @@ export default function TradesPage() {
               ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.totalProfit)
               : "—",
             icon: DollarSign,
-            color: stats?.totalProfit >= 0 ? "text-[#39ff88]" : "text-[#ff4d6d]",
+            color: stats?.totalProfit >= 0 ? "text-[#a78bfa]" : "text-[#ff4d6d]",
           },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-4">
@@ -121,7 +121,7 @@ export default function TradesPage() {
           onChange={handleSearchChange}
           type="text"
           placeholder="Search by user or asset..."
-          className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#39ff88]/40"
+          className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a78bfa]/40"
         />
       </div>
 
@@ -156,7 +156,7 @@ export default function TradesPage() {
                 <tr key={t.id} className="border-b border-[#1a1f28] last:border-0 hover:bg-white/[0.02]">
                   <td className="px-4 py-3 text-white text-xs truncate max-w-[140px]">{t.user}</td>
                   <td className="px-4 py-3 font-semibold text-white">{t.asset}</td>
-                  <td className={`px-4 py-3 font-bold text-xs ${t.type === "WIN" ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+                  <td className={`px-4 py-3 font-bold text-xs ${t.type === "WIN" ? "text-[#a78bfa]" : "text-[#ff4d6d]"}`}>
                     {t.type}
                   </td>
                   <td className="px-4 py-3 text-gray-300">
@@ -165,7 +165,7 @@ export default function TradesPage() {
                   <td className="px-4 py-3 text-gray-300">
                     ${t.payout.toFixed(2)}
                   </td>
-                  <td className={`px-4 py-3 font-semibold ${t.profit >= 0 ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+                  <td className={`px-4 py-3 font-semibold ${t.profit >= 0 ? "text-[#a78bfa]" : "text-[#ff4d6d]"}`}>
                     {t.profit >= 0 ? "+" : ""}${t.profit.toFixed(2)}
                   </td>
                   <td className="px-4 py-3">

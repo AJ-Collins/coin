@@ -1,14 +1,14 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: aiscalping_db
+    container_name: coinfychain_db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,10 +20,10 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: aiscalping_redis
+    container_name: coinfychain_redis
     restart: always
     ports:
-      - "6374:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -35,8 +35,8 @@ services:
 
   api:
     build: .
-    image: aiscalping-backend
-    container_name: aiscalping_api
+    image: coinfychain-backend
+    container_name: coinfychain_api
     restart: always
     depends_on:
       postgres:
@@ -61,8 +61,8 @@ services:
 
   deposit-worker:
     build: .
-    image: aiscalping-backend
-    container_name: aiscalping_deposit_worker
+    image: coinfychain-backend
+    container_name: coinfychain_deposit_worker
     restart: always
     depends_on:
       postgres:
@@ -81,8 +81,8 @@ services:
 
   sweeper-worker:
     build: .
-    image: aiscalping-backend
-    container_name: aiscalping_sweeper
+    image: coinfychain-backend
+    container_name: coinfychain_sweeper
     restart: always
     depends_on:
       postgres:
@@ -101,8 +101,8 @@ services:
 
   listener-worker:
     build: .
-    image: aiscalping-backend
-    container_name: aiscalping_listener
+    image: coinfychain-backend
+    container_name: coinfychain_listener
     restart: always
     depends_on:
       postgres:
@@ -121,7 +121,7 @@ services:
 
   probot-worker:
     build: .
-    image: aiscalping-backend
+    image: coinfychain-backend
     restart: always
     deploy:
       replicas: 3
@@ -137,6 +137,26 @@ services:
       REDIS_PORT: 6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     command: node dist/workers/proBotWorker.js
+
+  email-worker:
+    build: .
+    image: coinfychain-backend
+    container_name: coinfychain_email_worker
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: node dist/workers/emailWorker.js
 
 volumes:
   postgres_data:

@@ -20,7 +20,7 @@ export default function BotPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-        <Cpu className="h-6 w-6 text-[#22d3ee] animate-spin" />
+        <Cpu className="h-6 w-6 text-[#a78bfa] animate-spin" />
         <p className="text-xs text-gray-500 font-mono">Connecting...</p>
       </div>
     );

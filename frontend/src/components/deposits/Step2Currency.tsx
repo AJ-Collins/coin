@@ -146,7 +146,7 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
         <button
           type="button"
           onClick={() => { setIsCryptoOpen(!isCryptoOpen); setIsNetworkOpen(false); }}
-          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
+          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#a78bfa]/40 transition-colors"
         >
           <div className="flex items-center gap-3">
             <img
@@ -218,7 +218,7 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
               setIsCryptoOpen(false);
             }
           }}
-          className={`w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors ${
+          className={`w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#a78bfa]/40 transition-colors ${
             selectedCrypto.networks.length === 1 ? "opacity-60 cursor-default" : ""
           }`}
         >
@@ -266,7 +266,7 @@ export default function Step2Currency({ amount, onBack, onGenerate, isGenerating
           type="button"
           disabled={!selectedNetwork || isGenerating}
           onClick={() => selectedNetwork && onGenerate(selectedCrypto.id, selectedNetwork.value)}
-          className="w-2/3 bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3 rounded-xl hover:bg-[#67e8f9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-2/3 bg-[#a78bfa] text-[#05070a] font-bold text-sm py-3 rounded-xl hover:bg-[#c4b5fd] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <QrCode className="h-4 w-4" />
           {isGenerating ? "Generating..." : "Generate Address"}

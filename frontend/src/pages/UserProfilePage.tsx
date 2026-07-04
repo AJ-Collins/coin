@@ -55,7 +55,7 @@ export default function ProfilePage() {
         <div className={`fixed top-4 right-4 z-50 max-w-sm rounded-xl p-4 border animate-slideIn text-left shadow-2xl ${
           toast.isError 
             ? "bg-[#1c0d0d] border-[#441a1a] text-red-400" 
-            : "bg-[#0d1712] border-[#1a442b] text-[#39ff88]"
+            : "bg-[#120d1e] border-[#2e1a52] text-[#a78bfa]"
         }`}>
           <h4 className="text-sm font-bold">{toast.isError ? "Action Rejected" : "Success"}</h4>
           <p className="text-xs text-gray-400 mt-0.5">{toast.message}</p>
@@ -73,7 +73,7 @@ export default function ProfilePage() {
         
         <div className="flex items-center gap-4 bg-[#0a0d12] border border-[#1a1f28]/40 rounded-xl p-4 shadow-sm">
           {/* Decorative Icon Wrapper */}
-          <div className="w-10 h-10 rounded-xl bg-[#1a1f28] flex items-center justify-center text-[#39ff88] flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#1a1f28] flex items-center justify-center text-[#a78bfa] flex-shrink-0">
             <Mail className="h-5 w-5" />
           </div>
           
@@ -98,7 +98,7 @@ export default function ProfilePage() {
             type="password"
             value={password.current}
             onChange={(e) => setPassword((p) => ({ ...p, current: e.target.value }))}
-            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40 transition-colors"
+            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40 transition-colors"
             disabled={isUpdatingPassword}
           />
         </div>
@@ -109,7 +109,7 @@ export default function ProfilePage() {
               type="password"
               value={password.next}
               onChange={(e) => setPassword((p) => ({ ...p, next: e.target.value }))}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40 transition-colors"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40 transition-colors"
               disabled={isUpdatingPassword}
             />
           </div>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
               type="password"
               value={password.confirm}
               onChange={(e) => setPassword((p) => ({ ...p, confirm: e.target.value }))}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40 transition-colors"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40 transition-colors"
               disabled={isUpdatingPassword}
             />
           </div>

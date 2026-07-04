@@ -5,7 +5,7 @@ import { ALCHEMY_NETWORK_MAP } from '../config/networks.js';
 import { enqueueDepositActivity } from '../queues/depositQueue.js';
 import { getConfig } from '../utils/configLoader.js';
 
-const ALCHEMY_SIGNING_KEY = process.env.ALCHEMY_SIGNING_KEY!;
+
 
 async function verifyAlchemySignature(req: RawBodyRequest): Promise<boolean> {
   const signature = req.headers['x-alchemy-signature'] as string | undefined;
@@ -36,7 +36,7 @@ export async function handleAlchemyWebhook(req: RawBodyRequest, res: Response) {
   // Always ack fast — Alchemy retries if no 200 within 10s.
   res.status(200).json({ ok: true });
 
-  if (!verifyAlchemySignature(req)) {
+  if (!(await verifyAlchemySignature(req))) {
     console.warn('[Alchemy] Invalid webhook signature — ignoring');
     return;
   }

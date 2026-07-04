@@ -43,7 +43,7 @@ export default function WelcomeStats() {
   });
 
   return (
-    <div className="px-4 md:px-6 pt-8 pb-6 bg-gradient-to-b from-[#22d3ee]/[0.04] to-transparent">
+    <div className="px-4 md:px-6 pt-8 pb-6 bg-gradient-to-b from-[#a78bfa]/[0.04] to-transparent">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-white">
@@ -53,7 +53,7 @@ export default function WelcomeStats() {
         </div>
         <div className="flex gap-3">
           <Link to="/trade">
-            <button className="flex items-center gap-2 bg-[#22d3ee] text-[#090f1a] text-sm font-bold px-4 py-2.5 rounded-lg hover:bg-[#67e8f9]">
+            <button className="flex items-center gap-2 bg-[#a78bfa] text-[#05070a] text-sm font-bold px-4 py-2.5 rounded-lg hover:bg-[#c4b5fd]">
               <Bot className="h-6 w-6" /> Trade Now
             </button>
           </Link>
@@ -71,10 +71,10 @@ export default function WelcomeStats() {
           value={summary ? `$${(summary.totalVolume / 1e9).toFixed(2)} B` : "—"}
         />
         <StatCard
-          icon={<TrendingUp className="h-4 w-4 text-[#39ff88]" />}
+          icon={<TrendingUp className="h-4 w-4 text-[#a78bfa]" />}
           label="Top Gainer"
           value={summary ? `${summary.topGainer.symbol.toUpperCase()} +${summary.topGainer.price_change_percentage_24h.toFixed(2)}%` : "—"}
-          valueClass="text-[#22d3ee]"
+          valueClass="text-[#a78bfa]"
         />
         <StatCard
           icon={<TrendingDown className="h-4 w-4 text-[#ff4d6d]" />}

@@ -82,7 +82,7 @@ export default function BotActivationPanel({ onActivationSuccess }: ActivationPa
         onClick={() => fileInputRef.current?.click()}
         className={`bg-[#0d0f17] border-2 border-dashed rounded-2xl p-8 text-center space-y-3 cursor-pointer transition-all ${
           isDragging 
-            ? "border-[#22d3ee] bg-[#14231c]/30" 
+            ? "border-[#a78bfa] bg-[#1a1428]/30" 
             : "border-[#1a1f28] hover:border-gray-700 bg-[#0d0f17]"
         }`}
       >
@@ -94,7 +94,7 @@ export default function BotActivationPanel({ onActivationSuccess }: ActivationPa
           accept=".py,.js,.ts,.json,.zip"
         />
         <div className={`mx-auto w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-          isDragging ? "bg-[#39ff88] text-[#05070a]" : "bg-[#05070a] text-gray-400"
+          isDragging ? "bg-[#a78bfa] text-[#05070a]" : "bg-[#05070a] text-gray-400"
         }`}>
           {isDragging ? <FileCheck className="h-6 w-6" /> : <Upload className="h-6 w-6" />}
         </div>
@@ -112,8 +112,8 @@ export default function BotActivationPanel({ onActivationSuccess }: ActivationPa
 
       {/* Passkey Input Form */}
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2 text-[#22d3ee]">
-          <Key className="h-4 w-4 rotate-90 "/>
+        <div className="flex items-center gap-2 text-[#a78bfa]">
+          <Key className="h-4 w-4 rotate-90" />
           <h3 className="text-sm font-bold uppercase tracking-wider text-white">Activate with Passkey</h3>
         </div>
         
@@ -126,14 +126,14 @@ export default function BotActivationPanel({ onActivationSuccess }: ActivationPa
               value={passkey}
               disabled={activateWithKeyMutation.isPending}
               onChange={(e) => setPasskey(e.target.value)}
-              className="w-full bg-[#05070a] border border-[#22d3ee] rounded-xl pl-10 pr-4 py-3.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-colors font-mono disabled:opacity-50"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-10 pr-4 py-3.5 text-sm text-white placeholder-gray-600 outline-none focus:border-[#a78bfa]/40 transition-colors font-mono disabled:opacity-50"
             />
           </div>
 
           <button
             type="submit"
             disabled={activateWithKeyMutation.isPending}
-            className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#67e8f9] transition-all flex items-center justify-center gap-2 border border-[#14532d] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#16a34a] text-white font-bold text-sm py-3.5 rounded-xl hover:bg-[#15803d] transition-all flex items-center justify-center gap-2 border border-[#14532d] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {activateWithKeyMutation.isPending ? (
               <>

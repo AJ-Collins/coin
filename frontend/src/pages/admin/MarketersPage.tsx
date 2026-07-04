@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/api";
 
 const statusStyles: Record<string, string> = {
-  ACTIVE:    "bg-emerald-500/15 text-emerald-400",
+  ACTIVE:    "bg-violet-500/15 text-violet-400",
   SUSPENDED: "bg-rose-500/15 text-rose-400",
 };
 
@@ -95,7 +95,7 @@ export default function MarketersPage() {
         </div>
         <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-4">
           <div className="text-xs text-gray-500 mb-2">Total Payouts</div>
-          <div className="text-2xl font-black text-[#39ff88]">
+          <div className="text-2xl font-black text-[#a78bfa]">
             {stats
               ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(stats.totalEarnings)
               : "—"}
@@ -139,7 +139,7 @@ export default function MarketersPage() {
                   <td className="px-4 py-3 font-medium text-white">{m.email}</td>
                   <td className="px-4 py-3 text-gray-300">{m.referrals.toLocaleString()}</td>
                   <td className="px-4 py-3 text-gray-300">{m.referralRate}%</td>
-                  <td className="px-4 py-3 text-[#39ff88] font-semibold">
+                  <td className="px-4 py-3 text-[#a78bfa] font-semibold">
                     {new Intl.NumberFormat("en-US", { style: "currency", currency: m.currency }).format(m.accountBalance)}
                   </td>
                   <td className="px-4 py-3">
@@ -172,13 +172,13 @@ export default function MarketersPage() {
                             }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white"
                           >
-                            <span className="h-3.5 w-3.5 text-emerald-400">$</span> Update App Balance
+                            <span className="h-3.5 w-3.5 text-violet-400">$</span> Update App Balance
                           </button>
                           <button
                             onClick={() => { toggleStatusMutation.mutate(m.id); setActiveMenuId(null); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white"
                           >
-                            <span className={`h-2 w-2 rounded-full ${m.status === 'ACTIVE' ? 'bg-rose-400' : 'bg-emerald-400'}`} />
+                            <span className={`h-2 w-2 rounded-full ${m.status === 'ACTIVE' ? 'bg-rose-400' : 'bg-violet-400'}`} />
                             {m.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}
                           </button>
                         </div>
@@ -211,7 +211,7 @@ export default function MarketersPage() {
                 step="0.1"
                 value={rateValue}
                 onChange={e => setRateValue(e.target.value)}
-                className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+                className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -221,7 +221,7 @@ export default function MarketersPage() {
               <button
                 onClick={() => updateRateMutation.mutate({ id: rateModal.id, rate: parseFloat(rateValue) })}
                 disabled={updateRateMutation.isPending}
-                className="bg-[#39ff88] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#5dffa1] flex items-center gap-2 disabled:opacity-50"
+                className="bg-[#a78bfa] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#c4b5fd] flex items-center gap-2 disabled:opacity-50"
               >
                 {updateRateMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Save Rate
@@ -248,7 +248,7 @@ export default function MarketersPage() {
                 step="0.01"
                 value={amountValue}
                 onChange={e => setAmountValue(e.target.value)}
-                className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+                className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -258,7 +258,7 @@ export default function MarketersPage() {
               <button
                 onClick={() => updateAmountMutation.mutate({ id: amountModal.withdrawalId, amount: parseFloat(amountValue) })}
                 disabled={updateAmountMutation.isPending || !amountValue || parseFloat(amountValue) <= 0}
-                className="bg-[#39ff88] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#5dffa1] flex items-center gap-2 disabled:opacity-50"
+                className="bg-[#a78bfa] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#c4b5fd] flex items-center gap-2 disabled:opacity-50"
               >
                 {updateAmountMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Update Amount

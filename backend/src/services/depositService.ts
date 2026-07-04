@@ -113,18 +113,53 @@ export async function creditDeposit(
   network: string,
   amountCrypto: number,
   usdValue: number,
+  depositAddressId?: string,
 ) {
-  const depositAddress = await prisma.depositAddress.findUnique({
-    where: { userId_coin_network: { userId, coin, network } },
+  // Cheap indexed pre-check — avoids hitting the DB constraint (and logging
+  // a Postgres ERROR) every poll cycle for transactions we've already credited.
+  const alreadyExists = await prisma.deposit.findUnique({
+    where: { txHash },
+    select: { id: true },
   });
-  if (!depositAddress) throw new Error('Deposit address not found');
+  if (alreadyExists) {
+    return null; // silent skip — this is the expected, common case on every poll
+  }
+  
+  // If a depositAddressId was passed (e.g. from the deposit worker which already
+  // resolved it), use it directly. Otherwise fall back to a flexible lookup that
+  // finds ANY matching address for this user on this network — this handles the
+  // case where the same derived address serves multiple coins (USDT/USDC/ETH on
+  // the same EVM chain all share one address).
+  let resolvedAddressId = depositAddressId;
+
+  if (!resolvedAddressId) {
+    // Try exact coin+network match first (most specific)
+    const exact = await prisma.depositAddress.findUnique({
+      where: { userId_coin_network: { userId, coin, network } },
+    });
+    if (exact) {
+      resolvedAddressId = exact.id;
+    } else {
+      // Fallback: find any deposit address for this user on this network.
+      // This handles edge cases where the worker resolved a different coin
+      // than what's stored in the DepositAddress row.
+      const fallback = await prisma.depositAddress.findFirst({
+        where: { userId, network },
+      });
+      if (fallback) {
+        resolvedAddressId = fallback.id;
+      }
+    }
+  }
+
+  if (!resolvedAddressId) throw new Error(`Deposit address not found for user ${userId} on ${network}`);
 
   try {
     const [deposit] = await prisma.$transaction([
       prisma.deposit.create({
         data: {
           userId,
-          depositAddressId: depositAddress.id,
+          depositAddressId: resolvedAddressId,
           coin,
           network,
           txHash,

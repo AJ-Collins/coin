@@ -38,7 +38,7 @@ export default function DepositHistory({ history }: { history: DepositItem[] }) 
 
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${
                     displayStatus === "CREDITED"
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      ? "bg-violet-500/10 border-violet-500/20 text-violet-400"
                       : displayStatus === "FAILED"
                       ? "bg-red-500/10 border-red-500/20 text-red-400"
                       : "bg-amber-500/10 border-amber-500/20 text-amber-400"

@@ -73,14 +73,14 @@ export default function MarketData() {
       <div className="flex flex-col items-center text-center mb-16">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#a78bfa]" />
             LIVE MARKET FEED
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">Prices, volume & signals —</span><br />
-          <span className="text-[#22d3ee] drop-shadow-md">streaming live in real-time.</span>
+          <span className="text-[#a78bfa] drop-shadow-md">streaming live in real-time.</span>
         </h2>
       </div>
 
@@ -121,7 +121,7 @@ export default function MarketData() {
               
               <span className="text-right font-mono text-[#9ca3af] hidden md:block">{vol}</span>
               
-              <span className={`text-right font-mono font-bold text-sm ${up ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+              <span className={`text-right font-mono font-bold text-sm ${up ? "text-[#a78bfa]" : "text-[#ff4d6d]"}`}>
                 {change}
               </span>
               
@@ -129,7 +129,7 @@ export default function MarketData() {
               <div className="text-right hidden md:block">
                 <span className={`inline-flex text-[10px] font-mono font-bold px-2.5 py-1 rounded-sm uppercase tracking-wider ${
                   up 
-                    ? "bg-[#39ff88]/10 text-[#39ff88] border border-[#39ff88]/20" 
+                    ? "bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20" 
                     : "bg-[#ff4d6d]/10 text-[#ff4d6d] border border-[#ff4d6d]/20"
                 }`}>
                   {signal}

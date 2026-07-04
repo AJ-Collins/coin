@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/api";
 
 const statusStyles: Record<string, string> = {
-  CREDITED:  "bg-emerald-500/15 text-emerald-400",
+  CREDITED:  "bg-violet-500/15 text-violet-400",
   SWEPT:     "bg-blue-500/15 text-blue-400",
   PENDING:   "bg-amber-500/15 text-amber-400",
   CONFIRMED: "bg-yellow-500/15 text-yellow-400",
@@ -50,7 +50,7 @@ function CopyButton({ text }: { text: string }) {
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className="text-gray-600 hover:text-white transition-colors ml-1"
     >
-      {copied ? <Check className="h-3 w-3 text-[#39ff88]" /> : <Copy className="h-3 w-3" />}
+      {copied ? <Check className="h-3 w-3 text-[#a78bfa]" /> : <Copy className="h-3 w-3" />}
     </button>
   );
 }
@@ -149,7 +149,7 @@ export default function AdminDepositsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Total Volume", value: stats ? `$${Number(stats.totalVolume).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—", icon: Wallet, color: "text-[#39ff88]" },
+          { label: "Total Volume", value: stats ? `$${Number(stats.totalVolume).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—", icon: Wallet, color: "text-[#a78bfa]" },
           { label: "Pending", value: stats?.pending ?? "—", icon: Clock, color: "text-[#f6ad55]" },
           { label: "Credited", value: stats?.credited ?? "—", icon: CheckCircle2, color: "text-[#7f9cf5]" },
           { label: "Failed", value: stats?.failed ?? "—", icon: XCircle, color: "text-[#ff4d6d]" },
@@ -185,7 +185,7 @@ export default function AdminDepositsPage() {
             onChange={handleSearchChange}
             type="text"
             placeholder="Search by user email..."
-            className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#39ff88]/40"
+            className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a78bfa]/40"
           />
         </div>
         <button
@@ -235,7 +235,7 @@ export default function AdminDepositsPage() {
                   <td className="px-4 py-3 text-gray-300 text-xs">
                     {d.amount.toFixed(6)} {d.coin}
                   </td>
-                  <td className="px-4 py-3 text-[#39ff88] font-semibold text-xs">
+                  <td className="px-4 py-3 text-[#a78bfa] font-semibold text-xs">
                     ${d.usdValue.toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
@@ -333,8 +333,8 @@ export default function AdminDepositsPage() {
 
             {/* Success result */}
             {manualResult && !manualResult.alreadyCredited && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 space-y-1">
-                <p className="text-xs text-emerald-400 font-bold">{manualResult.message}</p>
+              <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-3 space-y-1">
+                <p className="text-xs text-violet-400 font-bold">{manualResult.message}</p>
                 <div className="text-[11px] text-gray-400 space-y-0.5 font-mono">
                   <p>User: <span className="text-white">{manualResult.details?.userId}</span></p>
                   <p>Coin: <span className="text-white">{manualResult.details?.coin}</span></p>
@@ -367,7 +367,7 @@ export default function AdminDepositsPage() {
                     placeholder="0xb5f206db4aee..."
                     value={manualForm.txHash}
                     onChange={e => setManualForm(f => ({ ...f, txHash: e.target.value }))}
-                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none focus:border-[#39ff88]/40"
+                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none focus:border-[#a78bfa]/40"
                   />
                   <p className="text-[10px] text-gray-600 mt-1">Copy from Etherscan / BSCscan</p>
                 </div>
@@ -385,7 +385,7 @@ export default function AdminDepositsPage() {
                       placeholder="175.00"
                       value={manualForm.usdValue}
                       onChange={e => setManualForm(f => ({ ...f, usdValue: e.target.value }))}
-                      className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg pl-6 pr-3 py-2 text-xs text-white outline-none focus:border-[#39ff88]/40"
+                      className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg pl-6 pr-3 py-2 text-xs text-white outline-none focus:border-[#a78bfa]/40"
                     />
                   </div>
                   <p className="text-[10px] text-gray-600 mt-1">USD equivalent at time of deposit</p>

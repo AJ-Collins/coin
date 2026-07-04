@@ -35,19 +35,19 @@ export default function TrendingAssets() {
         {assets.map((a: CoinGeckoAsset) => {
           const up = a.price_change_percentage_24h >= 0;
           const chartData = a.sparkline_in_7d.price.map((v, i) => ({ i, v }));
-          const color = up ? "#39ff88" : "#ff4d6d";
+          const color = up ? "#a78bfa" : "#ff4d6d";
 
           return (
             <div
               key={a.id}
-              className="block bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-3 sm:p-4 hover:border-[#39ff88]/30 transition-colors"
+              className="block bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-3 sm:p-4 hover:border-[#a78bfa]/30 transition-colors"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
                 <div className="mb-2 sm:mb-0">
                   <div className="font-bold text-white uppercase text-sm sm:text-base">{a.symbol}</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 truncate">{a.name}</div>
                 </div>
-                <span className={`text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded w-max ${up ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
+                <span className={`text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded w-max ${up ? "bg-violet-500/15 text-violet-400" : "bg-rose-500/15 text-rose-400"}`}>
                   {up ? "+" : ""}{a.price_change_percentage_24h.toFixed(2)}%
                 </span>
               </div>

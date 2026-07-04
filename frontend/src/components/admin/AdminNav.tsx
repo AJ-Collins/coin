@@ -30,7 +30,7 @@ export default function AdminNav() {
 
         <Link to="/admin" className="flex items-center gap-2 flex-shrink-0">
           <img src="/logo-head.png" alt="Logo" className="h-8 w-auto" />
-          <span className="text-xs font-bold text-[#39ff88] uppercase tracking-wider hidden sm:inline">Admin</span>
+          <span className="text-xs font-bold text-[#a78bfa] uppercase tracking-wider hidden sm:inline">Admin</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1 ml-2">
@@ -41,7 +41,7 @@ export default function AdminNav() {
                 key={to}
                 to={to}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  active ? "bg-[#39ff88]/10 text-[#39ff88]" : "text-gray-400 hover:text-white hover:bg-white/5"
+                  active ? "bg-[#a78bfa]/10 text-[#a78bfa]" : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -77,7 +77,7 @@ export default function AdminNav() {
                     to={to}
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                      active ? "bg-[#39ff88]/10 text-[#39ff88]" : "text-gray-400 hover:text-white hover:bg-white/5"
+                      active ? "bg-[#a78bfa]/10 text-[#a78bfa]" : "text-gray-400 hover:text-white hover:bg-white/5"
                     }`}
                   >
                     <Icon className="h-4 w-4" />

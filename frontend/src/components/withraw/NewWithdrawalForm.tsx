@@ -133,7 +133,7 @@ export default function NewWithdrawalForm({
         <button
           type="button"
           onClick={() => { setIsCryptoOpen(!isCryptoOpen); setIsNetworkOpen(false); }}
-          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
+          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#a78bfa]/40 transition-colors"
         >
           <div className="flex items-center gap-3">
             <img
@@ -180,7 +180,7 @@ export default function NewWithdrawalForm({
         <button
           type="button"
           onClick={() => { setIsNetworkOpen(!isNetworkOpen); setIsCryptoOpen(false); }}
-          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#39ff88]/40 transition-colors"
+          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white flex items-center justify-between outline-none focus:border-[#a78bfa]/40 transition-colors"
         >
           <span className={selectedNetwork ? "text-white font-medium" : "text-gray-500"}>
             {selectedNetwork ? `${selectedNetwork.name} (Fee: $${selectedNetwork.fee})` : "Select a network"}
@@ -218,7 +218,7 @@ export default function NewWithdrawalForm({
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Enter external destination address"
-          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all font-mono"
+          className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#a78bfa]/40 transition-all font-mono"
         />
       </div>
 
@@ -233,7 +233,7 @@ export default function NewWithdrawalForm({
             value={amountInput}
             onChange={(e) => setAmountInput(e.target.value)}
             placeholder="100.00"
-            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-8 pr-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#39ff88]/40 transition-all"
+            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl pl-8 pr-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#a78bfa]/40 transition-all"
           />
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function NewWithdrawalForm({
         <div className="border-t border-[#1a1f28] my-1" />
         <div className="flex justify-between items-center text-sm">
           <span className="font-medium text-white">You will receive</span>
-          <span className="text-[#39ff88] font-bold">${receiveAmount.toFixed(2)}</span>
+          <span className="text-[#a78bfa] font-bold">${receiveAmount.toFixed(2)}</span>
         </div>
       </div>
 
@@ -261,7 +261,7 @@ export default function NewWithdrawalForm({
       <button
         type="submit"
         disabled={!isFormComplete || isSubmitting}
-        className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#67e8f9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 relative z-0"
+        className="w-full bg-[#a78bfa] text-[#05070a] font-bold text-sm py-3.5 rounded-xl hover:bg-[#c4b5fd] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 relative z-0"
       >
         {isSubmitting ? "Processing Submission..." : "Submit Withdrawal"}
       </button>

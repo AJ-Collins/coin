@@ -39,6 +39,7 @@ export const SYSTEM_CONFIG_DEFINITIONS = [
   { key: 'TRON_RPC',                    label: 'Tron RPC URL',                    group: 'TRON',      isSensitive: false },
   { key: 'TRONGRID_API_KEY',            label: 'TronGrid API Key',                group: 'TRON',      isSensitive: true  },
   { key: 'HOT_WALLET_TRX_ADDRESS',      label: 'TRX Hot Wallet Address',          group: 'TRON',      isSensitive: false },
+  { key: 'HOT_WALLET_TRX_PRIVATE_KEY',  label: 'TRX Hot Wallet Private Key',      group: 'TRON',      isSensitive: true  },
   // HD Wallet
   { key: 'MASTER_MNEMONIC',             label: 'Master Mnemonic (HD Wallet)',     group: 'HD_WALLET', isSensitive: true  },
   // Alchemy
@@ -682,11 +683,13 @@ static async manualCreditDeposit(data: {
 
   const { ethers } = await import('ethers');
 
-  const RPC_MAP: Record<string, string> = {
-    eth_mainnet:      process.env.ETH_MAINNET_RPC!,
-    bsc_mainnet:      process.env.BSC_MAINNET_RPC!,
-    polygon_mainnet:  process.env.POLYGON_MAINNET_RPC!,
-    arbitrum_mainnet: process.env.ARBITRUM_MAINNET_RPC!,
+  const { getConfig } = await import('../utils/configLoader.js');
+
+  const RPC_MAP: Record<string, string | null> = {
+    eth_mainnet:      await getConfig('ETH_MAINNET_RPC'),
+    bsc_mainnet:      await getConfig('BSC_MAINNET_RPC'),
+    polygon_mainnet:  await getConfig('POLYGON_MAINNET_RPC'),
+    arbitrum_mainnet: await getConfig('ARBITRUM_MAINNET_RPC'),
   };
 
   let foundTx: any = null;
@@ -809,7 +812,7 @@ static async manualCreditDeposit(data: {
   }
 
   static async setup2FA(userId: string) {
-    const secret = speakeasy.generateSecret({ name: 'AIScalpingPro Admin', length: 20 });
+    const secret = speakeasy.generateSecret({ name: 'CoinfyChain Admin', length: 20 });
     
     await prisma.user.update({
       where: { id: userId },

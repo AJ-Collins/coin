@@ -61,9 +61,9 @@ export default function Step3Payment({ paymentData }: Step3Props) {
       <div className="text-left space-y-1.5">
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Send Exactly</label>
         <div className="flex items-center justify-between bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3">
-          <span className="font-mono font-bold text-[#39ff88]">{paymentData.amountToSend} {paymentData.currency}</span>
+          <span className="font-mono font-bold text-[#a78bfa]">{paymentData.amountToSend} {paymentData.currency}</span>
           <button onClick={() => copyToClipboard(paymentData.amountToSend.toString(), "amount")} className="text-gray-500 hover:text-white transition-colors">
-            {copiedAmount ? <Check className="h-4 w-4 text-[#39ff88]" /> : <Copy className="h-4 w-4" />}
+            {copiedAmount ? <Check className="h-4 w-4 text-[#a78bfa]" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
         <p className="text-[10px] text-amber-400/80 leading-snug">
@@ -77,7 +77,7 @@ export default function Step3Payment({ paymentData }: Step3Props) {
         <div className="flex items-center justify-between bg-[#05070a] border border-[#1a1f28] rounded-xl px-4 py-3 gap-2">
           <span className="font-mono text-xs text-gray-300 break-all select-all">{paymentData.address}</span>
           <button onClick={() => copyToClipboard(paymentData.address, "address")} className="text-gray-500 hover:text-white flex-shrink-0 transition-colors">
-            {copiedAddress ? <Check className="h-4 w-4 text-[#39ff88]" /> : <Copy className="h-4 w-4" />}
+            {copiedAddress ? <Check className="h-4 w-4 text-[#a78bfa]" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>

@@ -8,7 +8,7 @@ function Alert({ type, message }: { type: "success" | "error"; message: string }
   return (
     <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium ${
       type === "success"
-        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+        ? "bg-violet-500/10 border border-violet-500/20 text-violet-400"
         : "bg-red-500/10 border border-red-500/20 text-red-400"
     }`}>
       {type === "success"
@@ -112,7 +112,7 @@ export default function ProfilePage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function ProfilePage() {
         <button
           type="submit"
           disabled={updateProfileMutation.isPending}
-          className="bg-[#39ff88] text-[#05070a] font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-[#5dffa1] flex items-center gap-2 disabled:opacity-50"
+          className="bg-[#a78bfa] text-[#05070a] font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-[#c4b5fd] flex items-center gap-2 disabled:opacity-50"
         >
           {updateProfileMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           Save Profile
@@ -147,7 +147,7 @@ export default function ProfilePage() {
             placeholder="••••••••"
             value={password.current}
             onChange={(e) => setPassword(p => ({ ...p, current: e.target.value }))}
-            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               placeholder="••••••••"
               value={password.next}
               onChange={(e) => setPassword(p => ({ ...p, next: e.target.value }))}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
             />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function ProfilePage() {
               placeholder="••••••••"
               value={password.confirm}
               onChange={(e) => setPassword(p => ({ ...p, confirm: e.target.value }))}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40"
             />
           </div>
         </div>

@@ -183,13 +183,13 @@ export default function WithdrawalsPage() {
           <div
             className={`w-full max-w-2xl rounded-xl p-4 border transiton-all ${
               toast.type === "success"
-                ? "bg-[#0d1712] border-[#1a442b]"
+                ? "bg-[#120d1e] border-[#2e1a52]"
                 : "bg-[#1a0d0d] border-[#441a1a]"
             }`}
           >
             <h4
               className={`text-sm font-bold ${
-                toast.type === "success" ? "text-[#39ff88]" : "text-red-400"
+                toast.type === "success" ? "text-[#a78bfa]" : "text-red-400"
               }`}
             >
               {toast.type === "success" ? "Withdrawal Submitted" : "System Notification"}

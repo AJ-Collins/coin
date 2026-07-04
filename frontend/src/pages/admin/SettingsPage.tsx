@@ -46,8 +46,8 @@ function TwoFAModal({
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#39ff88]/10 rounded-lg">
-              <Shield className="h-5 w-5 text-[#39ff88]" />
+            <div className="p-2 bg-[#a78bfa]/10 rounded-lg">
+              <Shield className="h-5 w-5 text-[#a78bfa]" />
             </div>
             <div>
               <h3 className="text-white font-bold text-sm">{title}</h3>
@@ -72,7 +72,7 @@ function TwoFAModal({
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             onKeyDown={e => { if (e.key === 'Enter' && code.length === 6) onConfirm(code); }}
             placeholder="000000"
-            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 text-white text-center text-xl font-mono tracking-widest outline-none focus:border-[#39ff88]/50 transition-colors"
+            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 text-white text-center text-xl font-mono tracking-widest outline-none focus:border-[#a78bfa]/50 transition-colors"
           />
         </div>
 
@@ -86,7 +86,7 @@ function TwoFAModal({
           <button
             onClick={() => onConfirm(code)}
             disabled={code.length !== 6 || isLoading}
-            className="flex-1 bg-[#39ff88] text-black px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#5dffa1] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="flex-1 bg-[#a78bfa] text-black px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#c4b5fd] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Shield className="h-4 w-4" />}
             Verify
@@ -187,7 +187,7 @@ function SystemSettingsTab() {
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
-        <Loader2 className="animate-spin text-[#39ff88] h-6 w-6" />
+        <Loader2 className="animate-spin text-[#a78bfa] h-6 w-6" />
       </div>
     );
   }
@@ -246,13 +246,13 @@ function SystemSettingsTab() {
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  {(() => { const Icon = GROUP_CONFIG[group]?.icon; return Icon ? <Icon className="h-4 w-4 text-[#39ff88]" /> : null; })()}
+                  {(() => { const Icon = GROUP_CONFIG[group]?.icon; return Icon ? <Icon className="h-4 w-4 text-[#a78bfa]" /> : null; })()}
                   <span className="text-white font-bold text-sm">
                     {GROUP_CONFIG[group]?.label ?? group}
                   </span>
                 </div>
                 {pendingCount > 0 && (
-                  <span className="bg-[#39ff88]/20 text-[#39ff88] text-xs font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-[#a78bfa]/20 text-[#a78bfa] text-xs font-bold px-2 py-0.5 rounded-full">
                     {pendingCount} unsaved
                   </span>
                 )}
@@ -280,7 +280,7 @@ function SystemSettingsTab() {
                             <span className="text-xs text-amber-400/60 font-mono">encrypted</span>
                           )}
                           {setting.isSet ? (
-                            <span className="text-xs text-[#39ff88]/60">● set</span>
+                            <span className="text-xs text-[#a78bfa]/60">● set</span>
                           ) : (
                             <span className="text-xs text-red-400/60">○ not set</span>
                           )}
@@ -298,10 +298,10 @@ function SystemSettingsTab() {
                             }
                             onChange={e => setEdits(prev => ({ ...prev, [setting.key]: e.target.value }))}
                             placeholder={setting.isSet ? 'Click 👁 to reveal, or type to overwrite' : 'Not configured — enter value'}
-                            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 pr-10 text-white text-sm font-mono outline-none focus:border-[#39ff88]/40 transition-colors placeholder:text-gray-700"
+                            className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 pr-10 text-white text-sm font-mono outline-none focus:border-[#a78bfa]/40 transition-colors placeholder:text-gray-700"
                           />
                           {editValue !== undefined && editValue !== '' && (
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#39ff88] rounded-full" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#a78bfa] rounded-full" />
                           )}
                         </div>
 
@@ -310,7 +310,7 @@ function SystemSettingsTab() {
                           <button
                             onClick={() => handleRevealClick(setting.key)}
                             title={isRevealed ? 'Hide value' : 'Reveal value (requires 2FA)'}
-                            className="p-3 bg-[#05070a] border border-[#1a1f28] rounded-lg text-gray-400 hover:text-white hover:border-[#39ff88]/40 transition-colors flex-shrink-0"
+                            className="p-3 bg-[#05070a] border border-[#1a1f28] rounded-lg text-gray-400 hover:text-white hover:border-[#a78bfa]/40 transition-colors flex-shrink-0"
                           >
                             {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -342,7 +342,7 @@ function SystemSettingsTab() {
                   <div className="flex justify-end pt-2 border-t border-[#1a1f28]">
                     <button
                       onClick={() => handleSaveGroup(groupKeys)}
-                      className="flex items-center gap-2 bg-[#39ff88] text-black px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#5dffa1] transition-all"
+                      className="flex items-center gap-2 bg-[#a78bfa] text-black px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#c4b5fd] transition-all"
                     >
                       <Shield className="h-4 w-4" />
                       Save {pendingCount} change{pendingCount > 1 ? 's' : ''} (requires 2FA)
@@ -413,7 +413,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === tab.id
-                  ? 'bg-[#39ff88] text-black'
+                  ? 'bg-[#a78bfa] text-black'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -428,10 +428,10 @@ export default function SettingsPage() {
       {activeTab === 'bot' && (
         <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6">
           <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Settings className="h-5 w-5 text-[#39ff88]" /> Bot Engine Config
+            <Settings className="h-5 w-5 text-[#a78bfa]" /> Bot Engine Config
           </h2>
           {configLoading || !tempConfig ? (
-            <div className="flex justify-center p-8"><Loader2 className="animate-spin text-[#39ff88]" /></div>
+            <div className="flex justify-center p-8"><Loader2 className="animate-spin text-[#a78bfa]" /></div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -447,7 +447,7 @@ export default function SettingsPage() {
                       type="number" step={field.step}
                       value={tempConfig[field.key] || 0}
                       onChange={e => setTempConfig((p: any) => ({ ...p, [field.key]: Number(e.target.value) }))}
-                      className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 text-white outline-none focus:border-[#39ff88]/40 transition-colors"
+                      className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg p-3 text-white outline-none focus:border-[#a78bfa]/40 transition-colors"
                     />
                   </div>
                 ))}
@@ -456,7 +456,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => updateConfigMutation.mutate(tempConfig)}
                   disabled={updateConfigMutation.isPending}
-                  className="bg-[#39ff88] text-black px-6 py-3 rounded-lg font-bold text-sm hover:bg-[#5dffa1] disabled:opacity-50 transition-all flex items-center gap-2"
+                  className="bg-[#a78bfa] text-black px-6 py-3 rounded-lg font-bold text-sm hover:bg-[#c4b5fd] disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   {updateConfigMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="h-4 w-4" />}
                   Save Engine Config
@@ -472,12 +472,12 @@ export default function SettingsPage() {
         <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Key className="h-5 w-5 text-[#39ff88]" /> Bot Passkeys
+              <Key className="h-5 w-5 text-[#a78bfa]" /> Bot Passkeys
             </h2>
             <button
               onClick={() => generateKeyMutation.mutate()}
               disabled={generateKeyMutation.isPending}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#39ff88] text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#5dffa1] disabled:opacity-50 transition-all"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#a78bfa] text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#c4b5fd] disabled:opacity-50 transition-all"
             >
               {generateKeyMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : <Plus className="h-4 w-4" />}
               Generate New Key
@@ -524,13 +524,13 @@ function PasskeyTable({ onDelete }: { onDelete: (id: string) => void }) {
         <tbody>
           {keys.map((k: any) => (
             <tr key={k.id} className="border-b border-[#1a1f28]/30">
-              <td className="py-3 font-mono text-[#39ff88]">{k.code}</td>
+              <td className="py-3 font-mono text-[#a78bfa]">{k.code}</td>
               <td className="py-3">{k.version}</td>
               <td className="py-3 text-right flex justify-end gap-2">
                 {!k.isUsed && (
                   <>
                     <button onClick={() => copyToClipboard(k.code, k.id)} className="p-2 hover:bg-[#1a1f28] rounded-lg transition-colors text-gray-400 hover:text-white">
-                      {copiedId === k.id ? <Check className="h-4 w-4 text-[#39ff88]" /> : <Copy className="h-4 w-4" />}
+                      {copiedId === k.id ? <Check className="h-4 w-4 text-[#a78bfa]" /> : <Copy className="h-4 w-4" />}
                     </button>
                     <button onClick={() => onDelete(k.id)} className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-gray-400 hover:text-red-400">
                       <Trash2 className="h-4 w-4" />

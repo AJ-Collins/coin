@@ -37,8 +37,8 @@ export default function Charts() {
               </div>
               <span className="font-bold text-white text-sm tracking-wide">BTC/USDT</span>
             </div>
-            <span className="text-[#39ff88] text-sm font-mono font-bold">$67,842.10</span>
-            <span className="text-[#39ff88] text-xs bg-[#39ff88]/10 border border-[#39ff88]/20 px-2 py-0.5 rounded-sm font-mono">
+            <span className="text-[#a78bfa] text-sm font-mono font-bold">$67,842.10</span>
+            <span className="text-[#a78bfa] text-xs bg-[#a78bfa]/10 border border-[#a78bfa]/20 px-2 py-0.5 rounded-sm font-mono">
               +4.23%
             </span>
           </div>
@@ -102,8 +102,8 @@ export default function Charts() {
             />
 
             {/* BUY signal */}
-            <circle cx="310" cy="120" r="5" fill="#39ff88" stroke="#0a0c14" strokeWidth="2" />
-            <rect x="272" y="90" width="36" height="18" rx="2" fill="#39ff88" opacity="0.9" />
+            <circle cx="310" cy="120" r="5" fill="#a78bfa" stroke="#0a0c14" strokeWidth="2" />
+            <rect x="272" y="90" width="36" height="18" rx="2" fill="#a78bfa" opacity="0.9" />
             <text x="290" y="103" fill="#05070a" fontSize="9" fontWeight="900" fontFamily="monospace" textAnchor="middle">BUY</text>
 
             {/* SELL signal */}
@@ -112,7 +112,7 @@ export default function Charts() {
             <text x="601" y="39" fill="#ffffff" fontSize="9" fontWeight="900" fontFamily="monospace" textAnchor="middle">SELL</text>
 
             {/* Horizontal zone line */}
-            <line x1="0" y1="100" x2="800" y2="100" stroke="#39ff88" strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
+            <line x1="0" y1="100" x2="800" y2="100" stroke="#a78bfa" strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
           </svg>
 
           {/* AI overlay badge */}
@@ -123,7 +123,7 @@ export default function Charts() {
 
           {/* Legend */}
           <div className="absolute bottom-4 left-4 flex items-center gap-4 bg-[#070712]/90 border border-[#1a1f28] rounded-sm px-3 py-2 text-[10px] font-mono text-[#9ca3af] backdrop-blur-sm uppercase tracking-wider">
-            <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-[#39ff88]" />Entry</span>
+            <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-[#a78bfa]" />Entry</span>
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-[#ff4d6d]" />Exit</span>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function Charts() {
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-0 border-t border-[#1a1f28] bg-[#070712]">
           {[
             { label: "Open", val: "$65,120", cls: "text-white" },
-            { label: "High", val: "$68,450", cls: "text-[#39ff88]" },
+            { label: "High", val: "$68,450", cls: "text-[#a78bfa]" },
             { label: "Low", val: "$64,800", cls: "text-[#ff4d6d]" },
             { label: "Volume", val: "24.8K", cls: "text-white" },
             { label: "RSI", val: "62.3", cls: "text-[#00f0ff]" },

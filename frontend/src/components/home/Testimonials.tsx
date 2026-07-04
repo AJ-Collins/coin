@@ -5,7 +5,7 @@ const REVIEWS = [
     role: "Crypto Scalper",
     avatar: "JD",
     uid: "USR-8942",
-    accent: "text-[#39ff88] border-[#39ff88]/20 bg-[#39ff88]/5",
+    accent: "text-[#a78bfa] border-[#a78bfa]/20 bg-[#a78bfa]/5",
   },
   {
     quote: "I ran the backtesting engine on my manual strategy. The AI version outperformed it by 34%. Now I run four strategies daily.",
@@ -64,7 +64,7 @@ export default function Testimonials() {
               {/* Star Indicators Replaced by Surgical Terminal Checkmarks */}
               <div className="flex gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="h-3 w-3 text-[#39ff88]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg key={i} className="h-3 w-3 text-[#a78bfa]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="square" strokeLinejoin="miter" d="M5 13l4 4L19 7" />
                   </svg>
                 ))}
@@ -90,8 +90,8 @@ export default function Testimonials() {
               </div>
 
               {/* Status Marker */}
-              <div className="flex items-center gap-1.5 text-[9px] font-mono text-[#39ff88] bg-[#39ff88]/5 border border-[#39ff88]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-widest">
-                <span className="h-1 w-1 rounded-sm bg-[#39ff88]" />
+              <div className="flex items-center gap-1.5 text-[9px] font-mono text-[#a78bfa] bg-[#a78bfa]/5 border border-[#a78bfa]/10 px-1.5 py-0.5 rounded-sm uppercase tracking-widest">
+                <span className="h-1 w-1 rounded-sm bg-[#a78bfa]" />
                 Verified
               </div>
             </div>

@@ -23,8 +23,8 @@ interface TickerItemProps {
 const TickerItem = ({ pair, price, change, up }: TickerItemProps) => (
   <div className="flex items-center gap-2 px-5 py-0.5 border-r border-white/5 flex-shrink-0">
     <span className="text-[11px] font-semibold text-white/70">{pair}</span>
-    <span className={`text-[11px] font-bold ${up ? "text-emerald-400" : "text-rose-400"}`}>{price}</span>
-    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${up ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
+    <span className={`text-[11px] font-bold ${up ? "text-violet-400" : "text-rose-400"}`}>{price}</span>
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${up ? "bg-violet-500/15 text-violet-400" : "bg-rose-500/15 text-rose-400"}`}>
       {change}
     </span>
   </div>

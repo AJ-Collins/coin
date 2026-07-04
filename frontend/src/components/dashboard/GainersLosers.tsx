@@ -36,7 +36,7 @@ function Panel({
                 <div className="text-xs text-gray-500">${t.current_price.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
               </div>
             </div>
-            <span className={`text-sm font-bold ${positive ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+            <span className={`text-sm font-bold ${positive ? "text-[#a78bfa]" : "text-[#ff4d6d]"}`}>
               {positive ? "+" : ""}{t.price_change_percentage_24h.toFixed(2)}%
             </span>
           </div>
@@ -69,7 +69,7 @@ export default function GainersLosers() {
 
   return (
     <div className="px-4 md:px-6 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Panel title="Top Gainers (24h)" icon={<TrendingUp className="h-4 w-4 text-[#39ff88]" />} data={gainers} positive />
+      <Panel title="Top Gainers (24h)" icon={<TrendingUp className="h-4 w-4 text-[#a78bfa]" />} data={gainers} positive />
       <Panel title="Top Losers (24h)" icon={<TrendingDown className="h-4 w-4 text-[#ff4d6d]" />} data={losers} positive={false} />
     </div>
   );

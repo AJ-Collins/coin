@@ -93,8 +93,8 @@ export default function KYCStatus({ onStatusChange }: KYCStatusProps) {
       description: "Your submission was rejected. Please resubmit your documents.",
     },
     VERIFIED: {
-      icon: CheckCircle, color: "text-[#39ff88]", bgColor: "bg-[#39ff88]/10",
-      borderColor: "border-[#39ff88]/30", title: "Verified",
+      icon: CheckCircle, color: "text-[#a78bfa]", bgColor: "bg-[#a78bfa]/10",
+      borderColor: "border-[#a78bfa]/30", title: "Verified",
       description: "Your identity has been verified. You can withdraw without limits",
     },
   };
@@ -120,7 +120,7 @@ export default function KYCStatus({ onStatusChange }: KYCStatusProps) {
       {file ? (
         <div className="flex items-center justify-between bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
-            <FileText className="h-4 w-4 text-[#39ff88] flex-shrink-0" />
+            <FileText className="h-4 w-4 text-[#a78bfa] flex-shrink-0" />
             <span className="text-xs text-gray-300 truncate">{file.name}</span>
           </div>
           <button type="button" onClick={onClear} className="text-gray-500 hover:text-red-400 flex-shrink-0 ml-2">
@@ -131,7 +131,7 @@ export default function KYCStatus({ onStatusChange }: KYCStatusProps) {
         <button
           type="button"
           onClick={onPick}
-          className="w-full border border-dashed border-[#2a313e] hover:border-[#39ff88]/50 rounded-lg py-5 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-[#39ff88] transition-colors"
+          className="w-full border border-dashed border-[#2a313e] hover:border-[#a78bfa]/50 rounded-lg py-5 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-[#a78bfa] transition-colors"
         >
           <Upload className="h-5 w-5" />
           <span className="text-[11px] font-medium">Click to select file</span>
@@ -178,7 +178,7 @@ export default function KYCStatus({ onStatusChange }: KYCStatusProps) {
                 handleSubmitDocuments();
               }}
               disabled={isSubmitting || !frontFile || !backFile}
-              className="w-full bg-[#22d3ee] text-[#090f1a] font-bold text-xs py-2.5 rounded-lg hover:bg-[#67e8f9] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full bg-[#a78bfa] text-[#05070a] font-bold text-xs py-2.5 rounded-lg hover:bg-[#c4b5fd] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               <Upload className="h-4 w-4" />
               {isSubmitting ? "Uploading..." : currentStatus === "REJECTED" ? "Resubmit Documents" : "Submit Documents"}

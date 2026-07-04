@@ -14,7 +14,7 @@ function timeAgo(date: string) {
 
 const activityIcon = (type: string) => {
   switch (type) {
-    case "deposit":    return <Wallet className="h-4 w-4 text-[#39ff88]" />;
+    case "deposit":    return <Wallet className="h-4 w-4 text-[#a78bfa]" />;
     case "withdrawal": return <ArrowLeftRight className="h-4 w-4 text-[#ff4d6d]" />;
     case "alert":      return <AlertTriangle className="h-4 w-4 text-[#f6ad55]" />;
     default:           return <TrendingUp className="h-4 w-4 text-[#7f9cf5]" />;
@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
       label: "Trades Today",
       value: stats.tradesToday.toLocaleString(),
       icon: ArrowLeftRight,
-      color: "text-[#39ff88]",
+      color: "text-[#a78bfa]",
       delta: "completed trades",
     },
     {

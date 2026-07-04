@@ -22,7 +22,7 @@ export default function Header() {
           <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
             {/* Rigid Terminal System Icon replacing standard imagery / adjusting constraints */}
             <div className="h-10 w-10">
-              <img src="/logo-head.png" alt="AIscalpingPro" className="h-10 w-10" />
+              <img src="/logo-head.png" alt="CoinfyChain" className="h-10 w-10" />
             </div>
             <div className="flex flex-col">
               <span className="font-mono font-black text-sm text-white tracking-wider uppercase leading-none">
@@ -50,7 +50,7 @@ export default function Header() {
 
           {/* Primary Call to Action */}
           <Link to="/register" className="hidden sm:block">
-            <button className="bg-[#22d3ee] text-[#090f1a] font-mono font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-sm hover:bg-[#67e8f9] transition-colors shadow-[0_0_15px_rgba(57,255,136,0.15)] flex items-center gap-1.5 cursor-pointer">
+            <button className="bg-[#a78bfa] text-black font-mono font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-sm hover:bg-[#8b5cf6] transition-colors shadow-[0_0_15px_rgba(167,139,250,0.15)] flex items-center gap-1.5 cursor-pointer">
               Get Started
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="square" strokeLinejoin="miter" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -58,7 +58,7 @@ export default function Header() {
             </button>
           </Link>
           <Link to="/login" className="hidden sm:block">
-            <button className="border border-[#1a1f28] text-white font-mono font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-sm hover:border-[#67e8f9]/40 hover:bg-[#0a0c14]/80 backdrop-blur-sm transition-all duration-200 cursor-pointer">
+            <button className="border border-[#1a1f28] text-white font-mono font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-sm hover:border-[#a78bfa]/40 hover:bg-[#0a0c14]/80 backdrop-blur-sm transition-all duration-200 cursor-pointer">
               Sign In
             </button>
           </Link>
@@ -112,7 +112,7 @@ export default function Header() {
             <Link 
               to="/register" 
               onClick={handleNavClick} 
-              className="w-full text-center bg-[#22d3ee] text-[#090f1a] font-mono font-black text-xs uppercase tracking-widest py-3.5 rounded-sm hover:bg-[#67e8f9] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(57,255,136,0.15)]"
+              className="w-full text-center bg-[#a78bfa] text-black font-mono font-black text-xs uppercase tracking-widest py-3.5 rounded-sm hover:bg-[#8b5cf6] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.15)]"
             >
               Get Started
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">

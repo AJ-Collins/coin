@@ -14,7 +14,7 @@ import Footer from "../components/home/Footer";
 
 export default function Home() {
   return (
-    <div className="bg-[#090f1a] text-white overflow-x-hidden">
+    <div className="bg-[#070712] text-white overflow-x-hidden">
       <Header />
       <TickerRibbon />
       <Hero />

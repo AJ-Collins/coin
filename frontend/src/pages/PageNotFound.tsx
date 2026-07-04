@@ -21,7 +21,7 @@ export default function PageNotFound() {
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-xl p-5 w-full space-y-5 text-left mb-6">
         <button 
           onClick={() => navigate("/welcome")} 
-          className="w-full bg-[#39ff88] text-[#05070a] font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-[#5dffa1] transition-colors text-center block"
+          className="w-full bg-[#a78bfa] text-[#05070a] font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-[#c4b5fd] transition-colors text-center block"
         >
           Return to Dashboard
         </button>

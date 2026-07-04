@@ -6,7 +6,7 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY tsconfig.json ./
 COPY tsconfig.prisma.json ./
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate  # ← CHANGE THIS
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 COPY src ./src
 RUN npm run build
 RUN npx tsc -p tsconfig.prisma.json

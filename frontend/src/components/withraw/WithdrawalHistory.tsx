@@ -23,7 +23,7 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
       case "completed":
       case "approved":
       case "success":
-        return "bg-[#0f2a1d] text-[#39ff88]";
+        return "bg-[#0f2a1d] text-[#a78bfa]";
       case "pending":
         return "bg-[#1a2428] text-yellow-400";
       case "rejected":
@@ -75,12 +75,12 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
         return (
           <div
             key={tx.id}
-            className="bg-[#0a0d12] border border-[#1a1f28] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:border-[#39ff88]/30 transition-all"
+            className="bg-[#0a0d12] border border-[#1a1f28] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:border-[#a78bfa]/30 transition-all"
           >
             {/* Left Section: Token Identity + Transfer Metadata */}
             <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
               {/* Token Circular Icon Placeholder */}
-              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#1a9e6a]/15 border border-[#1a9e6a]/40 flex items-center justify-center text-xs sm:text-sm font-bold text-[#39ff88]">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-[#1a9e6a]/15 border border-[#1a9e6a]/40 flex items-center justify-center text-xs sm:text-sm font-bold text-[#a78bfa]">
                 {tx.coin.slice(0, 1).toUpperCase()}
               </div>
 
@@ -108,7 +108,7 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
                     <button
                       type="button"
                       onClick={() => handleCopyAddress(tx.toAddress!)}
-                      className="text-gray-600 hover:text-[#39ff88] p-0.5 transition-colors flex-shrink-0"
+                      className="text-gray-600 hover:text-[#a78bfa] p-0.5 transition-colors flex-shrink-0"
                       title="Copy Address"
                     >
                       <Copy className="h-3 w-3" />

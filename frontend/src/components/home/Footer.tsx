@@ -15,7 +15,7 @@ export default function Footer() {
           {/* Brand Identity Column */}
           <div className="col-span-2 sm:col-span-3 md:col-span-2">
             <a href="#" className="flex items-center gap-2.5 mb-5 group w-fit">
-              <img src="/logo.png" alt="AIscalpingPro Logo" className="h-10 w-40 group-hover:animate-pulse transition-transform" />
+              <img src="/logo.png" alt="CoinfyChain Logo" className="h-10 w-40 group-hover:animate-pulse transition-transform" />
             </a>
             
             <p className="text-sm text-[#9ca3af] font-light leading-relaxed mb-6 max-w-xs">

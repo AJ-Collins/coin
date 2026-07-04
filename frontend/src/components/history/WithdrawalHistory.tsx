@@ -56,7 +56,7 @@ export default function WithdrawalHistory({ transactions }: HistoryProps) {
                     className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white transition-all flex-shrink-0"
                   >
                     {copiedId === tx.id
-                      ? <Check className="h-3 w-3 text-[#39ff88]" />
+                      ? <Check className="h-3 w-3 text-[#a78bfa]" />
                       : <Copy className="h-3 w-3" />}
                   </button>
                 )}

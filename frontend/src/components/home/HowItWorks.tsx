@@ -27,7 +27,7 @@ const STEPS = [
         <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
-    color: "emerald",
+    color: "brandViolet",
     title: "Let the bot trade",
     body: "The AI scans markets 24/7, fires entries in 0.3 seconds, enforces your risk limits, and sends you trade reports.",
     detail: "Fully automated",
@@ -37,7 +37,7 @@ const STEPS = [
 const colorMap = {
   cyan:   { line: "from-[#00f0ff]", badge: "bg-[#00f0ff]/10 border-[#00f0ff]/30 text-[#00f0ff]", num: "text-[#00f0ff]", glow: "hover:shadow-[0_0_20px_rgba(0,240,255,0.1)] hover:border-[#00f0ff]/50" },
   amber:  { line: "from-[#fbbf24]", badge: "bg-[#fbbf24]/10 border-[#fbbf24]/30 text-[#fbbf24]", num: "text-[#fbbf24]", glow: "hover:shadow-[0_0_20px_rgba(251,191,36,0.1)] hover:border-[#fbbf24]/50" },
-  emerald:{ line: "from-[#39ff88]", badge: "bg-[#39ff88]/10 border-[#39ff88]/30 text-[#39ff88]", num: "text-[#39ff88]", glow: "hover:shadow-[0_0_20px_rgba(57,255,136,0.1)] hover:border-[#39ff88]/50" },
+  brandViolet:{ line: "from-[#a78bfa]", badge: "bg-[#a78bfa]/10 border-[#a78bfa]/30 text-[#a78bfa]", num: "text-[#a78bfa]", glow: "hover:shadow-[0_0_20px_rgba(167,139,250,0.1)] hover:border-[#a78bfa]/50" },
 };
 
 export default function HowItWorks() {
@@ -47,14 +47,14 @@ export default function HowItWorks() {
       <div className="flex flex-col items-center text-center mb-20">
         <div className="inline-flex items-center gap-3 font-mono text-xs text-[#9ca3af] border border-[#1a1f28] rounded-sm px-4 py-2 mb-8 bg-[#0a0c14]">
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3ee]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#fbbf24]" />
             HOW IT WORKS
           </span>
         </div>
         
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
           <span className="text-white">From signup to</span><br />
-          <span className="text-[#22d3ee] drop-shadow-md">first trade in minutes.</span>
+          <span className="text-[#fbbf24] drop-shadow-md">first trade in minutes.</span>
         </h2>
         
         <p className="text-base sm:text-lg text-[#9ca3af] max-w-xl mx-auto font-light leading-relaxed">
@@ -64,7 +64,7 @@ export default function HowItWorks() {
 
       <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         {/* Terminal connector line — desktop only */}
-        <div className="hidden md:block absolute top-14 left-[calc(33.33%+1.5rem)] right-[calc(33.33%+1.5rem)] h-px bg-gradient-to-r from-[#00f0ff]/30 via-[#fbbf24]/30 to-[#39ff88]/30 border-t border-dashed border-[#1a1f28]" />
+        <div className="hidden md:block absolute top-14 left-[calc(33.33%+1.5rem)] right-[calc(33.33%+1.5rem)] h-px bg-gradient-to-r from-[#00f0ff]/30 via-[#fbbf24]/30 to-[#a78bfa]/30 border-t border-dashed border-[#1a1f28]" />
 
         {STEPS.map(({ icon, color, title, body, detail }, i) => {
           const c = colorMap[color as keyof typeof colorMap];

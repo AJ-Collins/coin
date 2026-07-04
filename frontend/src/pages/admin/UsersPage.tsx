@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/api";
 
 const statusStyles: Record<string, string> = {
-  ACTIVE:    "bg-emerald-500/15 text-emerald-400",
+  ACTIVE:    "bg-violet-500/15 text-violet-400",
   SUSPENDED: "bg-rose-500/15 text-rose-400",
 };
 
@@ -146,7 +146,7 @@ export default function UsersPage() {
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center justify-center gap-2 bg-[#39ff88] text-[#05070a] font-bold text-sm px-4 py-2.5 rounded-lg hover:bg-[#5dffa1] transition self-start sm:self-auto"
+          className="flex items-center justify-center gap-2 bg-[#a78bfa] text-[#05070a] font-bold text-sm px-4 py-2.5 rounded-lg hover:bg-[#c4b5fd] transition self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" /> Create User
         </button>
@@ -159,7 +159,7 @@ export default function UsersPage() {
           onChange={handleSearchChange}
           type="text"
           placeholder="Search by email..."
-          className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#39ff88]/40"
+          className="w-full bg-[#0d0f17] border border-[#1a1f28] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a78bfa]/40"
         />
       </div>
 
@@ -291,13 +291,13 @@ export default function UsersPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
                   <input required type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)}
-                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40" />
+                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40" />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">User Role</label>
                   <select value={formRole} onChange={e => setFormRole(e.target.value)}
-                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40 appearance-none cursor-pointer">
+                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40 appearance-none cursor-pointer">
                     <option value="USER">User</option>
                     <option value="MARKETER">Marketer</option>
                     <option value="ADMIN">Admin</option>
@@ -307,7 +307,7 @@ export default function UsersPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Balance (USD)</label>
                   <input required type="number" step="0.01" min="0" value={formBalance} onChange={e => setFormBalance(e.target.value)}
-                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40" />
+                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40" />
                 </div>
 
                 <div>
@@ -316,13 +316,13 @@ export default function UsersPage() {
                   </label>
                   <input type="password" placeholder="••••••••" required={modalType === "create"}
                     value={formPassword} onChange={e => setFormPassword(e.target.value)}
-                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#39ff88]/40" />
+                    className="w-full bg-[#05070a] border border-[#1a1f28] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#a78bfa]/40" />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={() => setModalType(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
                   <button type="submit" disabled={isPending}
-                    className="bg-[#39ff88] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#5dffa1] flex items-center gap-2 disabled:opacity-50">
+                    className="bg-[#a78bfa] text-[#05070a] font-bold text-sm px-4 py-2 rounded-lg hover:bg-[#c4b5fd] flex items-center gap-2 disabled:opacity-50">
                     {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Save Changes
                   </button>
