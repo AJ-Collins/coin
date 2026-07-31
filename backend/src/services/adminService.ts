@@ -6,6 +6,7 @@ import { encrypt, decrypt } from '../utils/crypto.js';
 import { clearConfigCache } from '../utils/configLoader.js';
 import { generateDepositAddress } from '../utils/addressGenerator.js';
 import { calculateGasFee } from '../utils/gasFees.js';
+import { SupportedNetwork } from '../config/networks.js';
 
 
 // Canonical list of all configurable keys with metadata
@@ -114,6 +115,18 @@ export class AdminService {
 
   static async getBotConfig() {
     return prisma.proBotConfig.findFirst() || prisma.proBotConfig.create({ data: {} });
+  }
+
+  static async getWithdrawalConfig() {
+    return prisma.withdrawalConfig.findFirst() || prisma.withdrawalConfig.create({ data: {} });
+  }
+
+  static async updateWithdrawalConfig(data: { minWithdrawalAmount: number }) {
+    return prisma.withdrawalConfig.upsert({
+      where: { id: 1 },
+      update: data,
+      create: { ...data }
+    });
   }
 
   static async getDashboardStats() {
@@ -762,6 +775,41 @@ static async manualCreditDeposit(data: {
   };
 }
 
+  /**
+   * Admin-triggered deposit backfill. Processes up to 20 tx hashes on the
+   * given network, credits any matched watched addresses, and creates an
+   * audit trail recording which admin triggered it and what the results were.
+   */
+  static async backfillDeposits(
+    adminId: string,
+    network: SupportedNetwork,
+    txHashes: string[],
+  ) {
+    const { backfillDepositTx } = await import('./backfillDepositService.js');
+
+    const results: any[] = [];
+    for (const txHash of txHashes) {
+      try {
+        const result = await backfillDepositTx(network, txHash);
+        results.push(result);
+      } catch (err: any) {
+        results.push({ txHash, network, status: 'error', error: err.message, credits: [] });
+      }
+    }
+
+    // Audit trail — who ran this backfill and what it did. Cheap insurance
+    // given this path can move money.
+    await prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action: 'DEPOSIT_BACKFILL',
+        metadata: JSON.stringify({ network, txHashes, results }),
+      },
+    });
+
+    return results;
+  }
+
   // System settings configs
   static async getSystemConfigs() {
     const rows = await prisma.systemConfig.findMany();
@@ -812,7 +860,7 @@ static async manualCreditDeposit(data: {
   }
 
   static async setup2FA(userId: string) {
-    const secret = speakeasy.generateSecret({ name: 'CoinfyChain Admin', length: 20 });
+    const secret = speakeasy.generateSecret({ name: 'AIScalpingPro Admin', length: 20 });
     
     await prisma.user.update({
       where: { id: userId },

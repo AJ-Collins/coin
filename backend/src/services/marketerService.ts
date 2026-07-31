@@ -247,7 +247,7 @@ export class MarketerService {
 
     return {
       referralCode: userId.substring(0, 8).toUpperCase(),
-      referralLink: `https://coinfychain.com/register?ref=${userId.substring(0, 8).toUpperCase()}`,
+      referralLink: `https://aiscalpingpro.com/register?ref=${userId.substring(0, 8).toUpperCase()}`,
       totalReferred: referredUsers.length,
       referrals: transformedReferrals
     };

@@ -8,9 +8,6 @@ import { generateTONAddress } from '../wallets/ton.js';
 import { generateTronAddress } from '../wallets/tron.js';
 import { registerAddressWithAlchemy, isEVMNetwork } from '../webhooks/alchemyWebhook.js';
 import { SupportedNetwork, SUPPORTED_NETWORKS } from '../config/networks.js';
-import { generateXRPAddress } from '../wallets/xrp.js';
-import { generateLitecoinAddress } from '../wallets/litecoin.js';
-import { generateDogecoinAddress } from '../wallets/dogecoin.js';
 
 type GeneratorType = 'evm' | 'btc' | 'solana' | 'ton' | 'tron';
 
@@ -97,7 +94,8 @@ export async function getOrCreateDepositAddress(
   });
 
   // Only EVM addresses go to Alchemy — non-EVM chains use their own listeners
-  if (isEVMNetwork(network)) {
+  const ALCHEMY_MANAGED_NETWORKS = new Set(['eth_mainnet', 'polygon_mainnet', 'arbitrum_mainnet', 'sepolia']);
+  if (ALCHEMY_MANAGED_NETWORKS.has(network)) {
     registerAddressWithAlchemy(result.address, network).catch(err =>
       console.error(`[Alchemy] Background registration failed for ${result.address}:`, err.message)
     );
@@ -205,7 +203,7 @@ export async function fetchDepositHistory(userId: string) {
 
 export async function syncExistingAddressesWithAlchemy() {
   const evmNetworks = [
-    'sepolia', 'eth_mainnet', 'bsc_testnet', 'polygon_mainnet', 'arbitrum_mainnet',
+    'sepolia', 'eth_mainnet', 'polygon_mainnet', 'arbitrum_mainnet',
   ];
 
   const addresses = await prisma.depositAddress.findMany({

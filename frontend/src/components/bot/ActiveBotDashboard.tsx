@@ -1,13 +1,38 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../../lib/api";
-import { Square, Play, Trash2, Activity, Sliders, Terminal, Bot, TrendingUp, TrendingDown } from "lucide-react";
+import { Square, Play, Trash2, Activity, Sliders, Terminal, Bot, TrendingUp, TrendingDown, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ActiveBotProps {
   bot: { id: number; name: string; version: string; description: string; status: string; settings?: any };
   onDeactivate: () => void;
 }
+
+// Memoized log line — only re-renders when the log text changes
+const LogLine = memo(({ log, index }: { log: string; index: number }) => {
+  const isWin = log.includes("✓ WIN");
+  const isLoss = log.includes("✗ LOSS");
+  const isExecution = log.includes("[EXECUTION]");
+  const isSystem = log.includes("[SYSTEM]");
+  const isError = log.includes("ERROR") || log.includes("halting");
+  return (
+    <div className="flex gap-2 px-1 py-0.5 group">
+      <span className="text-gray-600 shrink-0">{">"}</span>
+      <span className={`break-all ${
+        isWin ? "text-[#39ff88] font-semibold" :
+        isLoss ? "text-red-400 font-semibold" :
+        isExecution ? "text-[#39ff88]/80" :
+        isError ? "text-orange-400" :
+        isSystem ? "text-blue-400" :
+        "text-gray-400"
+      }`}>
+        {log}
+      </span>
+    </div>
+  );
+});
+LogLine.displayName = 'LogLine';
 
 // Trade notification shown in the center of screen
 interface TradeNotif {
@@ -57,7 +82,7 @@ interface Trade {
 }
 
 const tradeStatusStyles: Record<string, string> = {
-  COMPLETED: "bg-violet-500/15 text-violet-400",
+  COMPLETED: "bg-emerald-500/15 text-emerald-400",
   RUNNING:   "bg-amber-500/15 text-amber-400",
   STOPPED:   "bg-gray-500/15 text-gray-400",
 };
@@ -92,14 +117,16 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
   const intervalDropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+
   // Trade notifications (center screen popups)
   const [tradeNotifs, setTradeNotifs] = useState<TradeNotif[]>([]);
   const notifCounterRef = useRef(0);
 
   const showTradeNotif = useCallback((notif: Omit<TradeNotif, 'id'>) => {
     const id = ++notifCounterRef.current;
-    setTradeNotifs(prev => [...prev, { ...notif, id }]);
-    // Auto-dismiss after 2.5s
+    // Cap at 3 concurrent notifications to prevent setTimeout storms
+    setTradeNotifs(prev => [...prev.slice(-2), { ...notif, id }]);
     setTimeout(() => {
       setTradeNotifs(prev => prev.filter(n => n.id !== id));
     }, 2500);
@@ -131,7 +158,9 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       const res = await api.get(`/bot/${bot.id}/stats`);
       return res.data;
     },
-    refetchInterval: status === "running" ? 3000 : false,
+    // WS delivers live stats already — only poll as fallback every 15s
+    refetchInterval: status === "running" ? 15000 : false,
+    staleTime: 10000,
   });
 
   const liveStats = statsData || { executions: 0, winRate: 0, pnl: 0, balance: 0 };
@@ -156,8 +185,14 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
 
   useEffect(() => {
     if (status !== "running") { setProgress(0); return; }
-    const interval = setInterval(() => setProgress((p) => (p >= 100 ? 0 : p + 1)), 600);
-    return () => clearInterval(interval);
+    let raf: number;
+    let last = performance.now();
+    const tick = (now: number) => {
+      if (now - last >= 600) { setProgress((p) => (p >= 100 ? 0 : p + 1)); last = now; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [status]);
 
   useEffect(() => {
@@ -201,79 +236,107 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── WebSocket — persistent connection, not tied to status ──────────────────
-  // Stays open even after bot stops so final logs (stop message) always arrive
+  // ── WebSocket — persistent connection with exponential-backoff reconnect ───
   useEffect(() => {
     if (!WS_URL) return;
+    let retryDelay = 1000;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
 
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
+    function connect() {
+      if (disposed) return;
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "subscribe_bot", proBotId: bot.id }));
-    };
+      ws.onopen = () => {
+        retryDelay = 1000; // reset backoff on success
+        ws.send(JSON.stringify({ type: "subscribe_bot", proBotId: bot.id }));
+      };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-      if (data.message_type === "log") {
-        const logLine: string = data.log;
-        // Append log — keep last 100 lines
-        setLogs(prev => [...prev.slice(-99), logLine]);
+        if (data.message_type === "log") {
+          const logLine: string = data.log;
+          setLogs(prev => [...prev.slice(-99), logLine]);
+          const notif = parseTradeNotif(logLine);
+          if (notif) showTradeNotif(notif);
+        }
 
-        // Check if this log line is a completed trade — show center notif
-        const notif = parseTradeNotif(logLine);
-        if (notif) showTradeNotif(notif);
-      }
-
-      if (data.message_type === "bot") {
-        const d = data.data;
-        if (d) {
-          setLiveBotData({
-            tradeCount: d.tradeCount,
-            wins: d.wins,
-            profit: d.profit,
-            balance: d.balance,
-          });
-          if (d?.balance !== undefined) {
-            queryClient.setQueryData(['accountBalance'], { balance: d.balance, currency: "USD" });
+        if (data.message_type === "bot") {
+          const d = data.data;
+          if (d) {
+            setLiveBotData({
+              tradeCount: d.tradeCount,
+              wins: d.wins,
+              profit: d.profit,
+              balance: d.balance,
+            });
+            if (d?.balance !== undefined) {
+              queryClient.setQueryData(['accountBalance'], { balance: d.balance, currency: "USD" });
+            }
+          }
+          if (d?.status === "STOPPED") {
+            setStatus("stopped");
+            setSessionStart((start) => {
+              if (start && d) {
+                setLastSessionResult({ pnl: d.profit - start.profit, balance: d.balance });
+              }
+              return start;
+            });
           }
         }
-        if (d?.status === "STOPPED") {
-          setStatus("stopped");
-          setSessionStart((start) => {
-            if (start && d) {
-              setLastSessionResult({ pnl: d.profit - start.profit, balance: d.balance });
-            }
-            return start;
-          });
-        }
-      }
 
-      if (data.message_type === "progress") {
-        setServerElapsed(data.data.elapsed);
-        setServerInterval(data.data.interval);
-        lastProgressMsgAt.current = Date.now();
-      }
-    };
-
-    ws.onclose = () => {
-      // Reconnect after 2s if bot is still running
-      setTimeout(() => {
-        if (wsRef.current?.readyState === WebSocket.CLOSED) {
-          wsRef.current = null;
+        if (data.message_type === "progress") {
+          setServerElapsed(data.data.elapsed);
+          setServerInterval(data.data.interval);
+          lastProgressMsgAt.current = Date.now();
         }
-      }, 2000);
-    };
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+        if (!disposed) {
+          // Exponential backoff reconnect: 1s → 2s → 4s → 8s → max 15s
+          retryTimer = setTimeout(() => { connect(); }, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 15000);
+        }
+      };
+
+      ws.onerror = () => { ws.close(); };
+    }
+
+    connect();
 
     return () => {
-      ws.close();
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      wsRef.current?.close();
       wsRef.current = null;
     };
   }, [bot.id, WS_URL]); // No `status` dependency — connection stays alive
 
+  // Debounced auto-scroll — only if user hasn't scrolled up manually
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledUp = useRef(false);
+
   useEffect(() => {
-    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      // "scrolled up" = more than 80px from bottom
+      userScrolledUp.current = el.scrollHeight - el.scrollTop - el.clientHeight > 80;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (userScrolledUp.current) return;
+    // Use rAF to batch with browser paint instead of forcing layout
+    requestAnimationFrame(() => {
+      terminalEndRef.current?.scrollIntoView({ behavior: "auto" });
+    });
   }, [logs]);
 
   const toggleStatusMutation = useMutation({
@@ -325,8 +388,9 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       });
       return data as { trades: Trade[]; total: number };
     },
-    // Automatically refresh the trades feed every 4 seconds if the bot is actively running
-    refetchInterval: status === "running" ? 4000 : false,
+    // Relaxed polling — WS covers real-time, this is a background sync
+    refetchInterval: status === "running" ? 10000 : false,
+    staleTime: 8000,
   });
 
   const dashboardTrades = tradesData?.trades ?? [];
@@ -343,7 +407,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
               pointer-events-none flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl
               border backdrop-blur-sm animate-bounce-in
               ${notif.isWin
-                ? 'bg-[#120a26]/95 border-[#a78bfa]/40 shadow-[0_0_30px_rgba(167,139,250,0.2)]'
+                ? 'bg-[#0a1f12]/95 border-[#39ff88]/40 shadow-[0_0_30px_rgba(57,255,136,0.2)]'
                 : 'bg-[#1a0808]/95 border-red-500/40 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
               }
             `}
@@ -352,11 +416,11 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
             }}
           >
             {notif.isWin
-              ? <TrendingUp className="w-5 h-5 text-[#a78bfa] flex-shrink-0" />
+              ? <TrendingUp className="w-5 h-5 text-[#39ff88] flex-shrink-0" />
               : <TrendingDown className="w-5 h-5 text-red-400 flex-shrink-0" />
             }
             <div>
-              <p className={`text-xs font-black uppercase tracking-wider ${notif.isWin ? 'text-[#a78bfa]' : 'text-red-400'}`}>
+              <p className={`text-xs font-black uppercase tracking-wider ${notif.isWin ? 'text-[#39ff88]' : 'text-red-400'}`}>
                 {notif.isWin ? '✓ Trade Won' : '✗ Trade Lost'}
               </p>
               <p className="text-white text-sm font-bold font-mono">
@@ -379,7 +443,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       {/* Configuration Settings Box */}
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2 text-gray-400">
-          <Sliders className="h-4 w-4 text-[#a78bfa]" />
+          <Sliders className="h-4 w-4 text-[#39ff88]" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-white">Bot Settings</h3>
         </div>
         <div className="flex flex-col gap-4">
@@ -389,24 +453,24 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
               type="number"
               value={settings.tradeAmount}
               onChange={(e) => setSettings({ ...settings, tradeAmount: e.target.value })}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[#a78bfa]/30"
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-3 py-2.5 text-sm text-white font-mono outline-none focus:border-[#39ff88]/30"
             />
           </div>
           <div className="relative" ref={intervalDropdownRef}>
             <label className="block text-[12px] font-bold text-gray-500 uppercase mb-1.5">Interval</label>
             <button type="button" onClick={() => { setIntervalOpen(!intervalOpen); setOpen(false); }}
-              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-3 py-2.5 flex items-center justify-between text-xs text-white hover:border-[#a78bfa]/30 transition-colors">
+              className="w-full bg-[#05070a] border border-[#1a1f28] rounded-xl px-3 py-2.5 flex items-center justify-between text-xs text-white hover:border-[#39ff88]/30 transition-colors">
               <span>{selectedInterval.label}</span>
               <svg className={`w-4 h-4 text-gray-500 transition-transform ${intervalOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {intervalOpen && (
-              <div className="absolute z-50 mt-2 w-full bg-[#0d0f17] border border-[#1a1f28] rounded-xl max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-[#a78bfa]/30 scrollbar-track-transparent">
+              <div className="absolute z-50 mt-2 w-full bg-[#0d0f17] border border-[#1a1f28] rounded-xl max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-[#39ff88]/30 scrollbar-track-transparent">
                 {INTERVAL_OPTIONS.map((opt) => (
                   <button key={opt.value} type="button"
                     onClick={() => { setSettings({ ...settings, tradeInterval: opt.value }); setIntervalOpen(false); }}
-                    className={`w-full px-3 py-3 text-left text-xs transition-colors ${settings.tradeInterval === opt.value ? "bg-[#1a1428] text-[#a78bfa]" : "text-white hover:bg-[#141922]"}`}>
+                    className={`w-full px-3 py-3 text-left text-xs transition-colors ${settings.tradeInterval === opt.value ? "bg-[#14231c] text-[#39ff88]" : "text-white hover:bg-[#141922]"}`}>
                     {opt.label}
                   </button>
                 ))}
@@ -429,7 +493,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
               </svg>
             </button>
             {open && (
-              <div className="absolute z-50 mt-2 w-full bg-[#0d0f17] border border-[#1a1f28] rounded-xl max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-[#a78bfa]/30 scrollbar-track-transparent">
+              <div className="absolute z-50 mt-2 w-full bg-[#0d0f17] border border-[#1a1f28] rounded-xl max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-[#39ff88]/30 scrollbar-track-transparent">
                 {ASSET_OPTIONS.map((asset) => (
                   <button key={asset.value} type="button"
                     onClick={() => { setSettings({ ...settings, tradingAsset: asset.value }); setOpen(false); }}
@@ -456,18 +520,18 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       <div className="bg-[#0d0f17] border border-[#1a1f28] rounded-2xl p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[#1a1428] border border-[#2d1f4e] flex items-center justify-center flex-shrink-0">
-              <Bot className="h-7 w-7 text-[#a78bfa]" />
+            <div className="w-10 h-10 rounded-xl bg-[#14231c] border border-[#1e3b2c] flex items-center justify-center flex-shrink-0">
+              <Bot className="h-7 w-7 text-[#39ff88]" />
             </div>
             <div className="min-w-0">
               <h4 className="text-sm font-bold text-white truncate">{bot.name}</h4>
               <div className="flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${status === "running" ? "bg-[#a78bfa]" : "bg-gray-500"}`} />
+                  <div className={`w-2 h-2 rounded-full ${status === "running" ? "bg-[#39ff88]" : "bg-gray-500"}`} />
                   <span className="text-[10px] text-gray-500 font-mono">{status === "running" ? "ACTIVE" : "STOPPED"}</span>
                 </div>
                 {status !== "running" && lastSessionResult && (
-                  <span className={`text-[12px] font-mono font-bold ${lastSessionResult.pnl >= 0 ? "text-[#a78bfa]" : "text-red-400"}`}>
+                  <span className={`text-[12px] font-mono font-bold ${lastSessionResult.pnl >= 0 ? "text-[#39ff88]" : "text-red-400"}`}>
                     {lastSessionResult.pnl >= 0 ? `+$${lastSessionResult.pnl.toFixed(2)} Profit` : `-$${Math.abs(lastSessionResult.pnl).toFixed(2)} Loss`}
                   </span>
                 )}
@@ -477,16 +541,16 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
           <div className="hidden md:flex flex-col flex-1 max-w-xs mx-4">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-gray-500">System Link</span>
-              <span className="text-[#a78bfa]">{progress}%</span>
+              <span className="text-[#39ff88]">{progress}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-[#05070a] overflow-hidden">
-              <div className="h-full bg-[#a78bfa] transition-all duration-300" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-[#39ff88] transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => toggleStatusMutation.mutate(status === "running" ? "stopped" : "running")}
-              className={`h-9 px-4 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${status === "running" ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20" : "bg-[#a78bfa] text-[#05070a] hover:bg-[#c4b5fd]"}`}>
+              className={`h-9 px-4 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${status === "running" ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20" : "bg-[#39ff88] text-[#05070a] hover:bg-[#5dffa1]"}`}>
               {status === "running" ? <><Square className="h-3.5 w-3.5 fill-current" /> Stop</> : <><Play className="h-3.5 w-3.5 fill-current" /> Start</>}
             </button>
             <button onClick={() => deleteMutation.mutate()}
@@ -500,8 +564,8 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
         {[
           { label: "Executions", value: displayStats.executions.toString(), color: "text-white" },
-          { label: "Win Rate", value: `${displayStats.winRate}%`, color: "text-[#a78bfa]" },
-          { label: "Profit PnL", value: `${Number(displayStats.pnl) < 0 ? "-" : "+"}$${Math.abs(Number(displayStats.pnl)).toFixed(2)}`, color: Number(displayStats.pnl) < 0 ? "text-red-400" : "text-[#a78bfa]" },
+          { label: "Win Rate", value: `${displayStats.winRate}%`, color: "text-[#39ff88]" },
+          { label: "Profit PnL", value: `${Number(displayStats.pnl) < 0 ? "-" : "+"}$${Math.abs(Number(displayStats.pnl)).toFixed(2)}`, color: Number(displayStats.pnl) < 0 ? "text-red-400" : "text-[#39ff88]" },
         ].map((card, idx) => (
           <div key={idx} className="bg-[#0d0f17] border border-[#1a1f28] rounded-lg sm:rounded-xl p-2 sm:p-3 text-center space-y-0.5 sm:space-y-1 overflow-hidden">
             <span className="text-[9.5px] sm:text-[9px] font-bold text-gray-500 uppercase tracking-tight sm:tracking-wide block truncate">{card.label}</span>
@@ -511,16 +575,16 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       </div>
 
       {status === "running" && (
-        <div className="relative bg-[#0d0f17] border border-[#a78bfa]/30 rounded-2xl p-4 overflow-hidden shadow-[0_0_15px_rgba(167,139,250,0.05)]">
-          <div className="absolute inset-0 bg-[#a78bfa]/5 animate-pulse pointer-events-none" />
+        <div className="relative bg-[#0d0f17] border border-[#39ff88]/30 rounded-2xl p-4 overflow-hidden shadow-[0_0_15px_rgba(57,255,136,0.05)]">
+          <div className="absolute inset-0 bg-[#39ff88]/5 animate-pulse pointer-events-none" />
           <div className="relative flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-[#a78bfa] animate-pulse" />
-              <h3 className="text-[11px] font-black tracking-[0.2em] text-[#a78bfa] uppercase">AI Bot Scalping Market</h3>
+              <Activity className="w-6 h-6 text-[#39ff88] animate-pulse" />
+              <h3 className="text-[11px] font-black tracking-[0.2em] text-[#39ff88] uppercase">AI Bot Scalping Market</h3>
             </div>
             <div className="flex items-center gap-1.5 bg-[#05070a] px-2 py-1 rounded-md border border-[#1a1f28]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] animate-ping" />
-              <span className="text-[10px] font-mono text-[#a78bfa]">CYCLE: {timeLeft}s</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#39ff88] animate-ping" />
+              <span className="text-[10px] font-mono text-[#39ff88]">CYCLE: {timeLeft}s</span>
             </div>
           </div>
           <div className="relative space-y-1.5">
@@ -529,7 +593,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
               <span className="text-white font-mono">{realProgressPercentage.toFixed(0)}%</span>
             </div>
             <div className="h-2 w-full bg-[#05070a] rounded-full overflow-hidden border border-[#1a1f28]">
-              <div className="h-full bg-gradient-to-r from-[#1a1428] via-[#a78bfa] to-[#ffffff] relative transition-all duration-1000 ease-linear" style={{ width: `${realProgressPercentage}%` }}>
+              <div className="h-full bg-gradient-to-r from-[#14231c] via-[#39ff88] to-[#ffffff] relative transition-all duration-1000 ease-linear" style={{ width: `${realProgressPercentage}%` }}>
                 <div className="absolute right-0 top-0 bottom-0 w-2 bg-white blur-[2px] opacity-75" />
               </div>
             </div>
@@ -541,12 +605,12 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
             </div>
             <div>
               <span className="block text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Market Bias</span>
-              <span className="text-[11px] font-bold text-[#a78bfa]">BULLISH</span>
+              <span className="text-[11px] font-bold text-[#39ff88]">BULLISH</span>
             </div>
             <div>
               <span className="block text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Exp. Value</span>
               <span className="text-[11px] font-bold text-white flex items-center justify-center gap-0.5">
-                <Bot className="w-3 h-3 text-[#a78bfa]" />+$4.82/trade
+                <Bot className="w-3 h-3 text-[#39ff88]" />+$4.82/trade
               </span>
             </div>
           </div>
@@ -557,12 +621,12 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Terminal className="w-3 h-3 text-[#a78bfa]" />
+            <Terminal className="w-3 h-3 text-[#39ff88]" />
             Live AI Terminal
           </span>
           {status === "running" && (
-            <span className="flex items-center gap-1.5 text-[9px] text-[#a78bfa] uppercase font-bold tracking-widest animate-pulse">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] shadow-[0_0_8px_#a78bfa]" />
+            <span className="flex items-center gap-1.5 text-[9px] text-[#39ff88] uppercase font-bold tracking-widest animate-pulse">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#39ff88] shadow-[0_0_8px_#39ff88]" />
               Running
             </span>
           )}
@@ -571,42 +635,23 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
           <div className="bg-[#0d0f17] border-b border-[#1a1f28] px-3 py-2 flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-            <div className="w-2.5 h-2.5 rounded-full bg-violet-500/20 border border-violet-500/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50" />
           </div>
-          <div className="p-4 h-70 overflow-y-auto font-mono text-[11px] space-y-1 scrollbar-thin scrollbar-thumb-[#1a1f28] scrollbar-track-transparent text-left">
+          <div ref={scrollContainerRef} className="p-4 h-70 overflow-y-auto font-mono text-[11px] space-y-1 scrollbar-thin scrollbar-thumb-[#1a1f28] scrollbar-track-transparent text-left">
             {logs.length === 0 ? (
               <div className="flex items-center gap-2 text-gray-600">
-                <span className="text-[#a78bfa]/50">{">"}</span>
+                <span className="text-[#39ff88]/50">{">"}</span>
                 <span className="italic">Bot standing by... waiting for engagement.</span>
               </div>
             ) : (
-              logs.map((log, index) => {
-                const isWin = log.includes("✓ WIN");
-                const isLoss = log.includes("✗ LOSS");
-                const isExecution = log.includes("[EXECUTION]");
-                const isSystem = log.includes("[SYSTEM]");
-                const isError = log.includes("ERROR") || log.includes("halting");
-                return (
-                  <div key={index} className="flex gap-2 px-1 py-0.5 group">
-                    <span className="text-gray-600 shrink-0">{">"}</span>
-                    <span className={`break-all ${
-                      isWin ? "text-[#a78bfa] font-semibold" :
-                      isLoss ? "text-red-400 font-semibold" :
-                      isExecution ? "text-[#a78bfa]/80" :
-                      isError ? "text-orange-400" :
-                      isSystem ? "text-blue-400" :
-                      "text-gray-400"
-                    }`}>
-                      {log}
-                    </span>
-                  </div>
-                );
-              })
+              logs.map((log, index) => (
+                <LogLine key={index} log={log} index={index} />
+              ))
             )}
             {status === "running" && (
               <div className="flex items-center gap-2 px-1 pt-1">
-                <span className="text-[#a78bfa]/50">{">"}</span>
-                <span className="w-1.5 h-3 bg-[#a78bfa] animate-pulse" />
+                <span className="text-[#39ff88]/50">{">"}</span>
+                <span className="w-1.5 h-3 bg-[#39ff88] animate-pulse" />
               </div>
             )}
             <div ref={terminalEndRef} />
@@ -618,7 +663,7 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-[#a78bfa]" />
+            <Activity className="w-3 h-3 text-[#39ff88]" />
             Recent Trades History
           </span>
         </div>
@@ -643,39 +688,72 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
             </div>
           ) : dashboardTrades.length > 0 ? (
             /* Stacked Card Render Container */
-            <div className="divide-y divide-[#1a1f28]">
-              {dashboardTrades.map((t) => (
-                <div key={t.id} className="p-4 space-y-3 hover:bg-white/[0.01] transition-colors text-left">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-base">{t.asset}</span>
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${t.type === "WIN" ? "bg-[#a78bfa]/10 text-[#a78bfa]" : "bg-[#ff4d6d]/10 text-[#ff4d6d]"}`}>
-                        {t.type}
+            <div className="divide-y divide-[#1a1f28]/50">
+              {dashboardTrades.map((t) => {
+                const isWin = t.profit >= 0;
+                const isBuy = t.type === "CALL" || t.type === "BUY" || t.type === "WIN"; // Assuming CALL/BUY based on logic, fallback to generic
+                
+                // Helper to get initials for the logo (e.g. GOLD/USD -> GO)
+                const getAssetInitials = (asset: string) => {
+                  if (asset.includes('GOLD') || asset.includes('XAU')) return 'GO';
+                  if (asset.includes('BTC')) return '₿';
+                  return asset.substring(0, 2).toUpperCase();
+                };
+
+                const dateObj = new Date(t.createdAt);
+                const timeString = dateObj.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false
+                });
+
+                // Mock lots based on stake if not provided
+                const lots = (t.stake / 100).toFixed(2);
+
+                return (
+                  <div 
+                    key={t.id} 
+                    onClick={() => setSelectedTrade(t)}
+                    className="p-3 sm:p-4 hover:bg-white/[0.02] transition-colors text-left flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      {/* Logo Box */}
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#8a7322]/10 border border-[#d4af37]/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#d4af37] font-black text-sm sm:text-base tracking-tighter">
+                          {getAssetInitials(t.asset)}
+                        </span>
+                      </div>
+                      
+                      {/* Asset & Details */}
+                      <div className="flex flex-col gap-0.5 sm:gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm sm:text-base tracking-wide">{t.asset}</span>
+                          <span className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
+                            isBuy ? "bg-[#39ff88]/15 text-[#39ff88]" : "bg-[#ff4d6d]/15 text-[#ff4d6d]"
+                          }`}>
+                            {isBuy ? "BUY" : "SELL"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-gray-400 font-medium">
+                          {lots} lots <span className="mx-1">•</span> {timeString}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right side: P&L & Status */}
+                    <div className="flex flex-col items-end gap-0.5 sm:gap-1">
+                      <span className={`font-black text-sm sm:text-base tracking-wide ${isWin ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+                        {isWin ? "+" : "-"}${Math.abs(t.profit).toFixed(2)}
+                      </span>
+                      <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded uppercase ${
+                        isWin ? "bg-[#39ff88]/10 text-[#39ff88]" : "bg-[#ff4d6d]/10 text-[#ff4d6d]"
+                      }`}>
+                        {isWin ? "PROFIT" : "LOSS"}
                       </span>
                     </div>
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${tradeStatusStyles[t.status] ?? tradeStatusStyles.STOPPED}`}>
-                      {t.status}
-                    </span>
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-2 text-xs border-t border-[#1a1f28]/50 pt-2">
-                    <div>
-                      <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">Stake</p>
-                      <p className="text-gray-300 font-medium">${t.stake.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">Payout</p>
-                      <p className="text-gray-300 font-medium">${t.payout.toFixed(2)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-0.5">P&L</p>
-                      <p className={`font-bold ${t.profit >= 0 ? "text-[#a78bfa]" : "text-[#ff4d6d]"}`}>
-                        {t.profit >= 0 ? "+" : ""}${t.profit.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             /* Empty Data State */
@@ -685,6 +763,101 @@ export default function ActiveBotDashboard({ bot, onDeactivate }: ActiveBotProps
           )}
         </div>
       </div>
+
+      {/* Detail Bottom Drawer / Modal */}
+      {selectedTrade && (() => {
+        const isWin = selectedTrade.profit >= 0;
+        const isBuy = selectedTrade.type === "CALL" || selectedTrade.type === "BUY" || selectedTrade.type === "WIN";
+        
+        const getAssetInitials = (asset: string) => {
+          if (asset.includes('GOLD') || asset.includes('XAU')) return 'GO';
+          if (asset.includes('BTC')) return '₿';
+          return asset.substring(0, 2).toUpperCase();
+        };
+
+        const lots = (selectedTrade.stake / 100).toFixed(2);
+        
+        const dateObj = new Date(selectedTrade.createdAt);
+        const dateString = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const timeString = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedTrade(null)}>
+            <div 
+              className="w-full sm:max-w-md bg-[#0d0f17] sm:border border-[#1a1f28] rounded-t-3xl sm:rounded-2xl p-6 sm:p-8 animate-slideUp sm:animate-fadeIn relative"
+              onClick={e => e.stopPropagation()}
+            >
+              <button onClick={() => setSelectedTrade(null)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              
+              {/* Header */}
+              <div className="flex flex-col items-start gap-4 mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#d4af37]/20 to-[#8a7322]/10 border border-[#d4af37]/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[#d4af37] font-black text-xl tracking-tighter">
+                    {getAssetInitials(selectedTrade.asset)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-2xl font-black text-white leading-none">Trade Details</h2>
+                  <p className="text-sm text-gray-400 font-medium">
+                    {selectedTrade.asset} • {lots} lots
+                  </p>
+                </div>
+              </div>
+              
+              <div className="w-full h-px bg-[#1a1f28] mb-6" />
+              
+              {/* Details Table */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400 font-medium">Type</span>
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded uppercase ${
+                    isBuy ? "bg-[#39ff88]/15 text-[#39ff88]" : "bg-[#ff4d6d]/15 text-[#ff4d6d]"
+                  }`}>
+                    {isBuy ? "BUY" : "SELL"}
+                  </span>
+                </div>
+                <div className="w-full h-px bg-[#1a1f28]/50" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400 font-medium">Result</span>
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded uppercase ${
+                    isWin ? "bg-[#39ff88]/10 text-[#39ff88]" : "bg-[#ff4d6d]/10 text-[#ff4d6d]"
+                  }`}>
+                    {isWin ? "PROFIT" : "LOSS"}
+                  </span>
+                </div>
+                <div className="w-full h-px bg-[#1a1f28]/50" />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400 font-medium">P&L Amount</span>
+                  <span className={`text-sm font-bold ${isWin ? "text-[#39ff88]" : "text-[#ff4d6d]"}`}>
+                    {isWin ? "+" : "-"}${Math.abs(selectedTrade.profit).toFixed(2)}
+                  </span>
+                </div>
+                <div className="w-full h-px bg-[#1a1f28]/50" />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400 font-medium">Stake</span>
+                  <span className="text-sm font-bold text-white text-right">
+                    ${selectedTrade.stake.toFixed(2)}
+                  </span>
+                </div>
+                <div className="w-full h-px bg-[#1a1f28]/50" />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400 font-medium">Date & Time</span>
+                  <span className="text-sm font-bold text-white text-right">
+                    {dateString} at {timeString}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

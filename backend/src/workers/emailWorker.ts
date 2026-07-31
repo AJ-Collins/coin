@@ -1,4 +1,3 @@
-// src/workers/emailWorker.ts
 import { Worker } from 'bullmq';
 import { redis } from '../lib/redis.js';
 import { EMAIL_QUEUE_NAME, EmailJobData } from '../queues/emailQueue.js';

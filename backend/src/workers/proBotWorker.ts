@@ -34,8 +34,9 @@ function randomScanMessage(asset: string): string {
 }
 
 function nextTradeDelaySec(intervalSec: number): number {
-  const minGap = Math.max(4, intervalSec * 0.12);
-  const maxGap = Math.max(minGap + 2, intervalSec * 0.3);
+  // Consistently fast trade interval (4 to 8 seconds) regardless of session length
+  const minGap = 4;
+  const maxGap = 8;
   return minGap + Math.random() * (maxGap - minGap);
 }
 
@@ -71,11 +72,10 @@ async function processTradeCycle(job: Job) {
     return;
   }
 
-  // ── Scan logs before trade ────────────────────────────────────────────────
+  // ── Scan logs before trade (fire concurrently) ─────────────────────────────
   const scanCount = 1 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < scanCount; i++) {
-    await log(proBotId, randomScanMessage(bot.asset), 'INFO');
-  }
+  const scanMsgs = Array.from({ length: scanCount }, () => randomScanMessage(bot.asset));
+  await Promise.all(scanMsgs.map(msg => log(proBotId, msg, 'INFO')));
 
   // ── Execute trade ─────────────────────────────────────────────────────────
   try {
@@ -115,8 +115,10 @@ async function processTradeCycle(job: Job) {
 
 const worker = new Worker('pro-bot-trades', processTradeCycle, {
   connection,
-  concurrency: 100,
-  limiter: { max: 200, duration: 1000 },
+  // 30 concurrent slots per process. With 3 replicas = 90 total.
+  // Each job does ~4–6 DB ops; 30 × 6 = 180 simultaneous DB ops — well within
+  // Postgres limits while still handling hundreds of active bots.
+  concurrency: 30,
   lockDuration: 30_000,
 });
 

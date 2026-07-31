@@ -3,6 +3,7 @@ import speakeasy from 'speakeasy';
 import { prisma } from "../prisma.js";
 import { AdminService } from '../services/adminService.js';
 import { isValidUUID, validateTxHash, truncateString, clampPageAndLimit } from '../utils/validators.js';
+import { SupportedNetwork } from '../config/networks.js';
 
 export class AdminController {
   static async generatePasskey(req: Request, res: Response) {
@@ -47,6 +48,24 @@ export class AdminController {
   static async getConfig(req: Request, res: Response) {
     const config = await AdminService.getBotConfig();
     res.json(config);
+  }
+
+  static async getWithdrawalConfig(req: Request, res: Response) {
+    try {
+      const config = await AdminService.getWithdrawalConfig();
+      res.json(config);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  static async updateWithdrawalConfig(req: Request, res: Response) {
+    try {
+      const config = await AdminService.updateWithdrawalConfig(req.body);
+      res.json(config);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   }
 
   static async getDashboardStats(req: Request, res: Response) {
@@ -331,6 +350,36 @@ static async updateWithdrawalStatus(req: Request, res: Response) {
     } catch (err: any) {
       console.error('manualCreditDeposit error:', err);
       return res.status(400).json({ error: err.message || 'Failed to credit deposit' });
+    }
+  }
+
+  /**
+   * POST /admin/deposits/backfill
+   * Body: { network: string, txHashes: string[] }
+   * Replays deposit tx(s) through receipt parsing → watched-address matching → crediting.
+   * Idempotent — already-credited txs are reported as 'already_credited'.
+   */
+  static async backfillDeposits(req: Request, res: Response) {
+    try {
+      const { network, txHashes } = req.body;
+
+      if (!network || typeof network !== 'string') {
+        return res.status(400).json({ error: 'network is required' });
+      }
+      if (!Array.isArray(txHashes) || txHashes.length === 0) {
+        return res.status(400).json({ error: 'txHashes[] is required and must not be empty' });
+      }
+      if (txHashes.length > 20) {
+        return res.status(400).json({ error: 'Max 20 tx hashes per request' });
+      }
+
+      const adminId = req.user!.id;
+      const results = await AdminService.backfillDeposits(adminId, network as SupportedNetwork, txHashes);
+
+      res.json({ results });
+    } catch (err: any) {
+      console.error('backfillDeposits error:', err);
+      res.status(500).json({ error: err.message || 'Backfill failed' });
     }
   }
 
