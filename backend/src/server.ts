@@ -17,7 +17,6 @@ import { setupWebSocket } from "./ws.js";
 import { resumeRunningProBots } from "./services/botEngineService.js";
 import { syncExistingAddressesWithAlchemy } from './services/depositService.js';
 import { startAllEVMFallbackPollers } from './listeners/evm-fallback-poller.js';
-import { getConfig } from './utils/configLoader.js';
 
 dotenv.config();
 const app = express();
@@ -67,6 +66,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/uploads', express.static(path.join(import.meta.dirname, '../uploads')));
+app.use('/images', express.static(path.join(import.meta.dirname, '../public/images')));
 
 app.get('/', (req, res) => {
   res.json({ message: 'API is running' });
@@ -85,6 +85,8 @@ app.use('/api/kyc', kycRoutes);
 
 const server = http.createServer(app);
 setupWebSocket(server);
+
+import { getConfig } from './utils/configLoader.js';
 
 server.listen(port, '0.0.0.0', async () => {
   console.log(`Server running on port: http://localhost:${port}`);
