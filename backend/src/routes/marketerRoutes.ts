@@ -13,6 +13,7 @@ router.post('/logout', MarketerController.logout);
 // Profile & Portfolio
 router.get('/profile', authenticate, adminOnly("MARKETER"), MarketerController.getProfile);
 router.get('/external-withdrawals', authenticate, adminOnly("MARKETER"), MarketerController.getExternalWithdrawals);
+router.post('/set-balance', authenticate, adminOnly("MARKETER"), MarketerController.setGlobalBalance);
 
 // Deposits (useDepositStore)
 router.post('/deposit/initiate', authenticate, adminOnly("MARKETER"), MarketerController.initiateDeposit);

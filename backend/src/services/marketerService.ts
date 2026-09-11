@@ -7,6 +7,7 @@ import { LoginInput, AuthResponse, UserDTO } from '../types/auth.types';
 import { DepositSimulationService } from './depositSimulationService.js';
 import { getOrCreateDepositAddress } from './depositService.js';
 import { WithdrawalSimulationService } from './withdrawalSimulationService.js';
+import { enqueueEmail } from '../queues/emailQueue.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -90,6 +91,103 @@ export class MarketerService {
     });
 
     return { totalWithdrawals: Number(virtualWallet?.balance ?? 0) };
+  }
+
+  /**
+   * SET (overwrite) the marketer's app balance (VirtualWallet.balance) to `amount`.
+   * This does NOT add/increment — it replaces the stored value.
+   * Creates the wallet on first use, locks the row (FOR UPDATE) for
+   * concurrency safety, and writes audit records.
+   */
+  static async setGlobalBalance(userId: string, amount: number) {
+    if (!Number.isFinite(amount)) {
+      throw new Error('Amount must be a valid number');
+    }
+    if (amount < 0) {
+      throw new Error('Amount must be a non-negative number');
+    }
+
+    const newBalance = new Prisma.Decimal(amount);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const walletRows = await tx.$queryRaw<{ id: string; balance: Prisma.Decimal }[]>`
+        SELECT id, balance FROM "VirtualWallet" WHERE "userId" = ${userId} FOR UPDATE
+      `;
+
+      let walletId = walletRows[0]?.id;
+      const previousBalance = walletRows[0]?.balance != null
+        ? new Prisma.Decimal(walletRows[0].balance.toString())
+        : new Prisma.Decimal(0);
+
+      if (!walletId) {
+        const created = await tx.virtualWallet.create({
+          data: { userId, balance: new Prisma.Decimal(0) },
+        });
+        walletId = created.id;
+      }
+
+      // SET semantics: overwrite balance (not increment/decrement).
+      const updatedWallet = await tx.virtualWallet.update({
+        where: { id: walletId },
+        data: { balance: newBalance },
+      });
+
+      const delta = newBalance.sub(previousBalance);
+
+      // Only write a ledger entry when the value actually changed.
+      if (!delta.isZero()) {
+        await tx.virtualWalletTransaction.create({
+          data: {
+            walletId,
+            type: delta.greaterThan(0) ? 'CREDIT' : 'DEBIT',
+            amount: delta.abs(),
+            balanceAfter: updatedWallet.balance,
+            description: `Marketer app balance set (previous $${previousBalance.toString()} -> $${newBalance.toString()})`,
+            referenceId: userId,
+          },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'MARKETER_SET_BALANCE',
+          metadata: JSON.stringify({
+            amount,
+            previousBalance: previousBalance.toString(),
+            newBalance: updatedWallet.balance.toString(),
+            setAt: new Date().toISOString(),
+          }),
+        },
+      });
+
+      return {
+        balance: Number(updatedWallet.balance),
+        previousBalance: Number(previousBalance),
+      };
+    });
+
+    // Deposit-received email — fired AFTER the balance commit so a mail/queue
+    // failure can never roll back or fail the balance update.
+    try {
+      const mailUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, role: true },
+      });
+      if (mailUser) {
+        await enqueueEmail({
+          type: 'MARKETER_DEPOSIT_RECEIVED',
+          user: { id: mailUser.id, email: mailUser.email, role: mailUser.role },
+          amount,
+          newBalance: result.balance,
+          previousBalance: result.previousBalance,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to enqueue marketer deposit-received email:', err);
+    }
+
+    return result;
   }
 
   static async initiateDeposit(userId: string, currency: string, network: string, amount: number) {

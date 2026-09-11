@@ -27,6 +27,13 @@ export type EmailJobData =
       amount: number;
       address: string;
       txId: string;
+    }
+  | {
+      type: 'MARKETER_DEPOSIT_RECEIVED';
+      user: any;
+      amount: number;
+      newBalance: number;
+      previousBalance: number;
     };
 
 export async function enqueueEmail(data: EmailJobData) {

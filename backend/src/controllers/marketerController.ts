@@ -59,6 +59,28 @@ export class MarketerController {
     }
   }
 
+  static async setGlobalBalance(req: Request, res: Response) {
+    try {
+      const { amount } = req.body;
+
+      if (amount === undefined || amount === null || String(amount).trim?.() === '') {
+        res.status(400).json({ success: false, error: 'amount is required' });
+        return;
+      }
+
+      const parsed = Number(amount);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        res.status(400).json({ success: false, error: 'amount must be a valid non-negative number' });
+        return;
+      }
+
+      const result = await MarketerService.setGlobalBalance(req.user!.id, parsed);
+      res.json({ success: true, data: result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   static async initiateDeposit(req: Request, res: Response) {
     try {
       const { currency, network, amount } = req.body;

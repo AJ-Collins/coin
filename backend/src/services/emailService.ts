@@ -174,6 +174,87 @@ export class EmailService {
   }
 
 
+  static async sendMarketerDepositReceived(
+    user: any,
+    amount: number,
+    newBalance: number,
+    previousBalance?: number,
+  ) {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('SMTP credentials not configured. Skipping email notification.');
+      return;
+    }
+
+    const now = new Date();
+    // Format: 2026-05-05 17:51:06 (matches in-app "deposit successful" timestamp)
+    const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+    const formattedDate = `${dateStr} (UTC)`;
+    const amountStr = Number(amount).toFixed(2);
+    const newBalanceStr = Number(newBalance).toFixed(2);
+
+    const mailOptions = {
+      from: `"Binance" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: `[Binance] USDT Deposit Successful - ${dateStr} (UTC)`,
+      html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e2329;">
+  <div style="background-color: #181a20; padding: 20px; text-align: center;">
+    <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 0; vertical-align: middle;">
+          <img src="${LOGO_URL}" width="38" height="38" alt="Binance" style="display: block; border: 0;" />
+        </td>
+        <td style="padding: 0 0 0 8px; vertical-align: middle;">
+          <span style="color: #fcd535; font-size: 24px; font-weight: bold; font-family: Arial, sans-serif; line-height: 28px;">BINANCE</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div style="padding: 30px 20px;">
+    <h2 style="font-size: 24px; font-weight: 600; margin-top: 0; margin-bottom: 24px; color: #1e2329;">USDT Deposit Successful</h2>
+
+    <p style="font-size: 16px; line-height: 1.5; color: #1e2329; margin-bottom: 24px;">
+      You have successfully deposited ${amountStr} USDT at ${formattedDate}. If you do not recognize this activity please contact us immediately.
+    </p>
+
+    <div style="background-color: #dedede; padding: 20px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <tr>
+          <td style="color: #707a8a; padding: 12px 0; width: 140px;">Time:</td>
+          <td style="text-align: right; padding: 12px 0;">${formattedDate}</td>
+        </tr>
+        <tr>
+          <td style="color: #707a8a; padding: 12px 0;">Amount:</td>
+          <td style="text-align: right; padding: 12px 0;">${amountStr} USDT</td>
+        </tr>
+        <tr>
+          <td style="color: #707a8a; padding: 12px 0;">New Balance:</td>
+          <td style="text-align: right; padding: 12px 0;">${newBalanceStr} USDT</td>
+        </tr>
+      </table>
+    </div>
+
+    <a href="#" style="display: inline-block; background-color: #fcd535; color: #1e2329; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 4px; margin-bottom: 24px; font-size: 16px;">Visit Your Dashboard</a>
+
+    <p style="font-size: 16px; line-height: 1.5; color: #1e2329; margin-bottom: 24px;">
+      Don't recognize this activity? Please <a href="#" style="color: #c99400; text-decoration: underline;">reset your password</a> and contact <a href="#" style="color: #c99400; text-decoration: underline;">customer support</a> immediately.
+    </p>
+
+    <p style="color: #1e2329; font-style: italic; margin-bottom: 40px; font-size: 16px;">This is an automated message, please do not reply.</p>
+  </div>
+</div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Marketer deposit-received email sent to ${user.email}`);
+    } catch (error) {
+      console.error('Failed to send marketer deposit-received email:', error);
+    }
+  }
+
+
   static async sendPasswordResetEmail(user: any, resetLink: string) {
     const mailOptions = {
       from: `"${process.env.APP_NAME || 'TradeNestBinary'}" <${process.env.SMTP_USER}>`,

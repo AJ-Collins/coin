@@ -26,6 +26,15 @@ const worker = new Worker<EmailJobData>(
         );
         break;
 
+      case 'MARKETER_DEPOSIT_RECEIVED':
+        await EmailService.sendMarketerDepositReceived(
+          job.data.user,
+          job.data.amount,
+          job.data.newBalance,
+          job.data.previousBalance
+        );
+        break;
+
       default:
         console.warn(`Unknown email job type: ${(job.data as any).type}`);
     }

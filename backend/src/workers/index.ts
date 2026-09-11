@@ -6,5 +6,7 @@
 // processing never competes with HTTP request handling for CPU/event-loop
 // time, and you can scale worker count independently of API instance count.
 import './depositWorker.js';
+import './emailWorker.js';
 
 console.log('[Worker] Deposit worker process started');
+console.log('[Worker] Email worker process started');
