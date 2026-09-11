@@ -94,20 +94,45 @@ export class MarketerService {
   }
 
   /**
-   * SET (overwrite) the marketer's app balance (VirtualWallet.balance) to `amount`.
-   * This does NOT add/increment — it replaces the stored value.
-   * Creates the wallet on first use, locks the row (FOR UPDATE) for
-   * concurrency safety, and writes audit records.
+   * SET (overwrite) the marketer's app balance (VirtualWallet.balance).
+   *
+   * New implementation — receives up to two fields:
+   * - `amount`:             app balance set from the client (optional)
+   * - `notificationAmount`: extra notification amount to add on top (optional)
+   * At least one must be provided.
+   *
+   * Total saved to DB:
+   * - both present → `amount + notificationAmount`
+   * - balance only → `amount` (legacy behaviour, pure overwrite)
+   * - noti only    → `previousBalance (DB) + notificationAmount` (top-up)
+   *
+   * The wallet row is still overwritten with the computed total (SET semantics),
+   * locked with FOR UPDATE for concurrency safety, with ledger + audit records.
+   * Accepts a legacy plain `number` (treated as `amount`) for backwards compat.
    */
-  static async setGlobalBalance(userId: string, amount: number) {
-    if (!Number.isFinite(amount)) {
-      throw new Error('Amount must be a valid number');
-    }
-    if (amount < 0) {
-      throw new Error('Amount must be a non-negative number');
-    }
+  static async setGlobalBalance(
+    userId: string,
+    input: number | { amount?: number; notificationAmount?: number },
+  ) {
+    const { amount, notificationAmount } =
+      typeof input === 'number' ? { amount: input, notificationAmount: undefined } : (input ?? {});
 
-    const newBalance = new Prisma.Decimal(amount);
+    if (amount === undefined && notificationAmount === undefined) {
+      throw new Error('Either amount or notificationAmount is required');
+    }
+    for (const [key, value] of [
+      ['amount', amount],
+      ['notificationAmount', notificationAmount],
+    ] as const) {
+      if (value !== undefined) {
+        if (!Number.isFinite(value)) {
+          throw new Error(`${key} must be a valid number`);
+        }
+        if ((value as number) < 0) {
+          throw new Error(`${key} must be a non-negative number`);
+        }
+      }
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const walletRows = await tx.$queryRaw<{ id: string; balance: Prisma.Decimal }[]>`
@@ -125,6 +150,18 @@ export class MarketerService {
         });
         walletId = created.id;
       }
+
+      // Total to save = (app balance set, or DB balance if not sent) + (notification amount, or 0).
+      // - both present → amount + notificationAmount
+      // - balance only → amount (legacy overwrite)
+      // - noti only    → previousBalance + notificationAmount (top-up)
+      const baseBalance =
+        amount !== undefined ? new Prisma.Decimal(amount) : previousBalance;
+      const notiTopUp =
+        notificationAmount !== undefined
+          ? new Prisma.Decimal(notificationAmount)
+          : new Prisma.Decimal(0);
+      const newBalance = baseBalance.add(notiTopUp);
 
       // SET semantics: overwrite balance (not increment/decrement).
       const updatedWallet = await tx.virtualWallet.update({
@@ -153,7 +190,8 @@ export class MarketerService {
           userId,
           action: 'MARKETER_SET_BALANCE',
           metadata: JSON.stringify({
-            amount,
+            amount: amount ?? null,
+            notificationAmount: notificationAmount ?? null,
             previousBalance: previousBalance.toString(),
             newBalance: updatedWallet.balance.toString(),
             setAt: new Date().toISOString(),
@@ -164,6 +202,8 @@ export class MarketerService {
       return {
         balance: Number(updatedWallet.balance),
         previousBalance: Number(previousBalance),
+        amount: amount ?? null,
+        notificationAmount: notificationAmount ?? null,
       };
     });
 
@@ -178,7 +218,7 @@ export class MarketerService {
         await enqueueEmail({
           type: 'MARKETER_DEPOSIT_RECEIVED',
           user: { id: mailUser.id, email: mailUser.email, role: mailUser.role },
-          amount,
+          amount: result.balance,
           newBalance: result.balance,
           previousBalance: result.previousBalance,
         });

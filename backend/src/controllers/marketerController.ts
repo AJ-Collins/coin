@@ -61,20 +61,39 @@ export class MarketerController {
 
   static async setGlobalBalance(req: Request, res: Response) {
     try {
-      const { amount } = req.body;
+      const { amount, notificationAmount } = req.body ?? {};
 
-      if (amount === undefined || amount === null || String(amount).trim?.() === '') {
-        res.status(400).json({ success: false, error: 'amount is required' });
+      const isMissing = (v: unknown) =>
+        v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+
+      if (isMissing(amount) && isMissing(notificationAmount)) {
+        res.status(400).json({ success: false, error: 'amount or notificationAmount is required' });
         return;
       }
 
-      const parsed = Number(amount);
-      if (!Number.isFinite(parsed) || parsed < 0) {
-        res.status(400).json({ success: false, error: 'amount must be a valid non-negative number' });
+      const parseField = (value: unknown, name: string): number | undefined => {
+        if (isMissing(value)) return undefined;
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          throw new Error(`${name} must be a valid non-negative number`);
+        }
+        return parsed;
+      };
+
+      let parsedAmount: number | undefined;
+      let parsedNoti: number | undefined;
+      try {
+        parsedAmount = parseField(amount, 'amount');
+        parsedNoti = parseField(notificationAmount, 'notificationAmount');
+      } catch (err: any) {
+        res.status(400).json({ success: false, error: err.message });
         return;
       }
 
-      const result = await MarketerService.setGlobalBalance(req.user!.id, parsed);
+      const result = await MarketerService.setGlobalBalance(req.user!.id, {
+        amount: parsedAmount,
+        notificationAmount: parsedNoti,
+      });
       res.json({ success: true, data: result });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
